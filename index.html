@@ -8,8 +8,8 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#f0f2f7;--sur:#ffffff;--pan:#e8eaf0;--bor:rgba(0,0,0,.08);--acc:#0088cc;--mut:#8a95aa;--bh:104px;--txt:#1a2030;--hint:rgba(0,0,0,.3);--hint-b:rgba(0,0,0,.18);--ov-bg:rgba(240,242,247,.95);--pb-bg:rgba(0,0,0,.1);--eico:rgba(0,0,0,.15);--cin-bg:rgba(255,255,255,.6);--panel-bg:rgba(255,255,255,.95);--vbg-inner:#ffffff;--vbg-outer:#d6dce8}
 .dark{--bg:#07090e;--sur:#0d1017;--pan:#0f1318;--bor:rgba(255,255,255,.07);--mut:#4a536a;--txt:#dde2ee;--hint:rgba(255,255,255,.25);--hint-b:rgba(255,255,255,.15);--ov-bg:rgba(7,9,14,.95);--pb-bg:rgba(255,255,255,.06);--eico:rgba(255,255,255,.09);--cin-bg:rgba(0,0,0,.3);--panel-bg:rgba(13,16,23,.95);--vbg-inner:#1a1f2e;--vbg-outer:#07090e}
-html,body{width:100%;height:100%;background:var(--bg);overflow:hidden;font-family:'Segoe UI',system-ui,sans-serif;color:var(--txt);transition:background .3s,color .3s}
-#app{display:flex;flex-direction:column;height:100vh}
+html,body{width:100%;height:100%;height:100dvh;background:var(--bg);overflow:hidden;font-family:'Segoe UI',system-ui,sans-serif;color:var(--txt);transition:background .3s,color .3s}
+#app{display:flex;flex-direction:column;height:100vh;height:100dvh}
 header{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:52px;flex-shrink:0;background:var(--sur);border-bottom:1px solid var(--bor);transition:background .3s,border-color .3s}
 .logo{display:flex;align-items:center;gap:9px;font-size:.85rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
 .dot{width:7px;height:7px;border-radius:50%;background:var(--acc);box-shadow:0 0 10px color-mix(in srgb,var(--acc) 50%,transparent);animation:pulse 2s ease-in-out infinite}
@@ -54,7 +54,7 @@ canvas:active{cursor:grabbing}
 #empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:11px;pointer-events:none}
 .eico{width:56px;height:56px;border:1.5px dashed var(--eico);border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--mut)}
 .etxt{font-family:monospace;font-size:.62rem;color:var(--mut);letter-spacing:.05em}
-#bar{height:calc(var(--bh) + env(safe-area-inset-bottom, 0px));flex-shrink:0;background:var(--pan);border-top:1px solid var(--bor);display:flex;align-items:center;padding:0 16px;padding-bottom:env(safe-area-inset-bottom, 0px);gap:8px;overflow-x:auto;z-index:10;transition:background .3s}
+#bar{height:calc(var(--bh) + env(safe-area-inset-bottom, 0px));max-height:calc(var(--bh) + env(safe-area-inset-bottom, 0px));flex-shrink:0;background:var(--pan);border-top:1px solid var(--bor);display:flex;align-items:center;padding:0 16px;padding-bottom:env(safe-area-inset-bottom, 0px);gap:8px;overflow:hidden;z-index:10;transition:background .3s;box-sizing:border-box}
 #bar::-webkit-scrollbar{height:3px}
 #bar::-webkit-scrollbar-thumb{background:rgba(0,0,0,.15)}
 .mc{flex-shrink:0;width:120px;height:72px;border-radius:9px;border:1.5px solid var(--bor);background:var(--sur);cursor:pointer;position:relative;overflow:hidden;display:flex;flex-direction:column;transition:border-color .2s,transform .16s,box-shadow .2s,background .3s}
@@ -495,10 +495,7 @@ window.addEventListener('load', () => {
 
 function fitCamera() {
   const asp = viewEl.clientWidth / Math.max(viewEl.clientHeight, 1);
-  const base = 1.6;
-  // Portrait: widen FOV equivalent by pulling camera back.
-  // asp ~0.55 on typical phone → DEF_R ~3.5 so wide flat models fit.
-  DEF_R = asp < 1 ? base / Math.max(asp * 0.65, 0.25) : base;
+  DEF_R = asp < 1 ? 2.8 : 1.6;
   CAM.r = DEF_R;
 }
 
