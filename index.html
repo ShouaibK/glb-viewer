@@ -77,9 +77,14 @@ canvas:active{cursor:grabbing}
 .mc:hover .cbtn{color:rgba(200,50,50,.7)}
 .cbtn:hover{background:rgba(255,50,50,.12)!important;color:#cc2222!important}
 
+/* Toolbar container */
+#viewer-toolbar{
+  position:absolute;top:12px;right:12px;z-index:15;
+  display:flex;gap:6px;align-items:center;
+}
+
 /* ── GRADING PANEL ── */
 #grade-toggle{
-  position:absolute;top:12px;right:12px;z-index:15;
   width:32px;height:32px;border-radius:8px;border:1px solid var(--bor);
   background:var(--panel-bg);backdrop-filter:blur(6px);
   cursor:pointer;display:flex;align-items:center;justify-content:center;
@@ -88,7 +93,6 @@ canvas:active{cursor:grabbing}
 #grade-toggle:hover{border-color:var(--acc);color:var(--acc)}
 #grade-toggle.open{border-color:var(--acc);color:var(--acc)}
 #reset-btn{
-  position:absolute;top:12px;right:52px;z-index:15;
   height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--bor);
   background:var(--panel-bg);backdrop-filter:blur(6px);
   cursor:pointer;display:flex;align-items:center;gap:6px;
@@ -97,7 +101,6 @@ canvas:active{cursor:grabbing}
 }
 #reset-btn:hover{border-color:var(--acc);color:var(--acc)}
 #cam-toggle{
-  position:absolute;top:12px;right:132px;z-index:15;
   height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--bor);
   background:var(--panel-bg);backdrop-filter:blur(6px);
   cursor:pointer;display:flex;align-items:center;gap:6px;
@@ -107,7 +110,7 @@ canvas:active{cursor:grabbing}
 #cam-toggle:hover{border-color:var(--acc);color:var(--acc)}
 #cam-toggle.open{border-color:var(--acc);color:var(--acc)}
 #cam-panel{
-  position:absolute;top:50px;right:132px;z-index:15;
+  position:absolute;top:50px;right:12px;z-index:15;
   width:220px;background:var(--panel-bg);backdrop-filter:blur(8px);
   border:1px solid var(--bor);border-radius:12px;
   padding:14px 16px;display:none;flex-direction:column;gap:10px;
@@ -171,7 +174,6 @@ canvas:active{cursor:grabbing}
 
 /* Snapshot button */
 #snap-btn{
-  position:absolute;top:12px;right:252px;z-index:15;
   height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--bor);
   background:var(--panel-bg);backdrop-filter:blur(6px);
   cursor:pointer;display:flex;align-items:center;gap:6px;
@@ -183,7 +185,6 @@ canvas:active{cursor:grabbing}
 
 /* Light panel button */
 #light-toggle{
-  position:absolute;top:12px;right:372px;z-index:15;
   height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--bor);
   background:var(--panel-bg);backdrop-filter:blur(6px);
   cursor:pointer;display:flex;align-items:center;gap:6px;
@@ -193,7 +194,7 @@ canvas:active{cursor:grabbing}
 #light-toggle:hover{border-color:var(--acc);color:var(--acc)}
 #light-toggle.open{border-color:var(--acc);color:var(--acc)}
 #light-panel{
-  position:absolute;top:50px;right:372px;z-index:15;
+  position:absolute;top:50px;right:12px;z-index:15;
   width:220px;background:var(--panel-bg);backdrop-filter:blur(8px);
   border:1px solid var(--bor);border-radius:12px;
   padding:14px 16px;display:none;flex-direction:column;gap:10px;
@@ -241,6 +242,53 @@ canvas:active{cursor:grabbing}
 }
 .snap-close:hover{border-color:#cc2222;color:#cc2222}
 .snap-info{font-family:monospace;font-size:.6rem;color:var(--mut)}
+
+/* ── MOBILE RESPONSIVE ── */
+@media(max-width:600px){
+  :root{--bh:88px}
+
+  /* Header */
+  header{padding:0 12px;height:48px}
+  #hname{display:none}
+  .chip:not(.on){display:none}
+
+  /* Model info */
+  .mtit{font-size:1.2rem}
+  #minfo{top:12px;left:12px}
+
+  /* Hide hint on mobile */
+  #hint{display:none}
+
+  /* Toolbar buttons — stack into a row that scrolls */
+  #light-toggle,#snap-btn,#cam-toggle,#reset-btn,#grade-toggle{
+    position:static;height:28px;padding:0 8px;font-size:.5rem;
+  }
+  #viewer-toolbar{
+    position:absolute;top:8px;right:8px;z-index:15;
+    display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;max-width:calc(100vw - 16px);
+  }
+
+  /* Panels — full width from top */
+  #light-panel,#cam-panel,#grade-panel{
+    right:8px;left:8px;width:auto;top:48px;
+  }
+
+  /* Bottom bar cards */
+  .mc{width:88px;height:60px}
+  .upb{width:48px;height:60px}
+  #bar{padding:0 8px;gap:6px}
+
+  /* Snap modal */
+  #snap-box{padding:12px;gap:10px}
+  .snap-actions{flex-wrap:wrap}
+  .snap-filename{min-width:0}
+  #snap-preview{max-width:85vw;max-height:50vh}
+}
+@media(max-width:380px){
+  .mtit{font-size:1rem}
+  .mc{width:76px;height:56px}
+  .cnm{font-size:.5rem}
+}
 </style>
 </head>
 <body>
@@ -264,11 +312,14 @@ canvas:active{cursor:grabbing}
     </div>
     <div id="hint"><b>DRAG</b>Orbit <b>RMB</b>Pan <b>SCROLL</b>Zoom <b>DBL</b>Reset</div>
 
-    <!-- Snapshot button -->
-    <button id="snap-btn" title="Take Snapshot">📷 SNAP</button>
-
-    <!-- Camera position button -->
-    <button id="cam-toggle" title="Camera Position">📐 POSITION</button>
+    <!-- Toolbar -->
+    <div id="viewer-toolbar">
+      <button id="light-toggle" title="Lighting">💡 LIGHTS</button>
+      <button id="snap-btn" title="Take Snapshot">📷 SNAP</button>
+      <button id="cam-toggle" title="Camera Position">📐 POSITION</button>
+      <button id="reset-btn" title="Reset Camera Position">⟳ RESET</button>
+      <button id="grade-toggle" title="Color Grading">⚙</button>
+    </div>
 
     <!-- Camera position panel -->
     <div id="cam-panel">
@@ -300,12 +351,6 @@ canvas:active{cursor:grabbing}
       <button class="cp-save"  id="cp-save">SAVE AS DEFAULT</button>
     </div>
 
-    <!-- Reset position button -->
-    <button id="reset-btn" title="Reset Camera Position">⟳ RESET</button>
-
-    <!-- Light panel button -->
-    <button id="light-toggle" title="Lighting">💡 LIGHTS</button>
-
     <!-- Light panel -->
     <div id="light-panel">
       <div class="gp-title">Lighting</div>
@@ -329,9 +374,6 @@ canvas:active{cursor:grabbing}
       <div class="gp-divider"></div>
       <button class="gp-reset" id="light-reset">RESET TO DEFAULTS</button>
     </div>
-
-    <!-- Color grading toggle -->
-    <button id="grade-toggle" title="Color Grading">⚙</button>
 
     <!-- Color grading panel -->
     <div id="grade-panel">
@@ -724,9 +766,44 @@ canvas.addEventListener('wheel', e => {
   e.preventDefault();
 }, { passive: false });
 canvas.addEventListener('contextmenu', e => e.preventDefault());
-canvas.addEventListener('dblclick', () => {
-  Object.assign(CAM, CAM_DEFAULT);
-});
+canvas.addEventListener('dblclick', () => { Object.assign(CAM, CAM_DEFAULT); });
+
+// ── TOUCH ────────────────────────────────────────────────────────
+let touches = {};
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  touches = {};
+  for (const t of e.touches) touches[t.identifier] = { x: t.clientX, y: t.clientY };
+}, { passive: false });
+
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  const pts = e.touches;
+  if (pts.length === 1) {
+    const t = pts[0], prev = touches[t.identifier];
+    if (!prev) return;
+    const dx = (t.clientX - prev.x) * 0.013;
+    const dy = (t.clientY - prev.y) * 0.013;
+    CAM.az += dx;
+    CAM.el = Math.max(-1.45, Math.min(1.45, CAM.el + dy));
+    markDirty();
+  } else if (pts.length === 2) {
+    const a = pts[0], b = pts[1];
+    const pa = touches[a.identifier], pb = touches[b.identifier];
+    if (!pa || !pb) return;
+    const prevDist = Math.hypot(pa.x - pb.x, pa.y - pb.y);
+    const curDist  = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+    const scale = prevDist / (curDist || 1);
+    const MIN_R = DEF_R * 0.35, MAX_R = DEF_R * 4;
+    CAM.r = Math.min(MAX_R, Math.max(MIN_R, CAM.r * scale));
+    markDirty();
+  }
+  for (const t of pts) touches[t.identifier] = { x: t.clientX, y: t.clientY };
+}, { passive: false });
+
+canvas.addEventListener('touchend', e => {
+  for (const t of e.changedTouches) delete touches[t.identifier];
+}, { passive: false });
 
 // ── GLB PARSE ────────────────────────────────────────────────────
 function parseGLB(ab) {
