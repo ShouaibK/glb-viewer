@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 <title>GLB Viewer</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -42,7 +42,7 @@ canvas:active{cursor:grabbing}
 .mlbl{font-family:monospace;font-size:.56rem;letter-spacing:.2em;color:var(--mut);margin-bottom:3px}
 .mtit{font-size:1.8rem;font-weight:800;background:linear-gradient(130deg,var(--txt) 45%,var(--acc));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .msub{font-family:monospace;font-size:.62rem;color:var(--mut);margin-top:4px}
-#hint{position:absolute;bottom:calc(var(--bh) + 16px);right:20px;font-family:monospace;font-size:.58rem;color:var(--hint);text-align:right;line-height:2;pointer-events:none}
+#hint{position:absolute;bottom:calc(var(--bh) + env(safe-area-inset-bottom, 0px) + 16px);right:20px;font-family:monospace;font-size:.58rem;color:var(--hint);text-align:right;line-height:2;pointer-events:none}
 #hint b{color:var(--hint-b);font-weight:400;margin-right:5px}
 #ov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:var(--ov-bg);z-index:20;transition:opacity .4s}
 #ov.off{opacity:0;pointer-events:none}
@@ -54,7 +54,7 @@ canvas:active{cursor:grabbing}
 #empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:11px;pointer-events:none}
 .eico{width:56px;height:56px;border:1.5px dashed var(--eico);border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--mut)}
 .etxt{font-family:monospace;font-size:.62rem;color:var(--mut);letter-spacing:.05em}
-#bar{height:var(--bh);flex-shrink:0;background:var(--pan);border-top:1px solid var(--bor);display:flex;align-items:center;padding:0 16px;gap:8px;overflow-x:auto;z-index:10;transition:background .3s}
+#bar{height:calc(var(--bh) + env(safe-area-inset-bottom, 0px));flex-shrink:0;background:var(--pan);border-top:1px solid var(--bor);display:flex;align-items:center;padding:0 16px;padding-bottom:env(safe-area-inset-bottom, 0px);gap:8px;overflow-x:auto;z-index:10;transition:background .3s}
 #bar::-webkit-scrollbar{height:3px}
 #bar::-webkit-scrollbar-thumb{background:rgba(0,0,0,.15)}
 .mc{flex-shrink:0;width:120px;height:72px;border-radius:9px;border:1.5px solid var(--bor);background:var(--sur);cursor:pointer;position:relative;overflow:hidden;display:flex;flex-direction:column;transition:border-color .2s,transform .16s,box-shadow .2s,background .3s}
@@ -85,26 +85,26 @@ canvas:active{cursor:grabbing}
 
 /* ── GRADING PANEL ── */
 #grade-toggle{
-  width:32px;height:32px;border-radius:8px;border:1px solid var(--bor);
+  width:38px;height:38px;border-radius:8px;border:1px solid var(--bor);
   background:var(--panel-bg);backdrop-filter:blur(6px);
   cursor:pointer;display:flex;align-items:center;justify-content:center;
-  color:var(--mut);font-size:.85rem;transition:border-color .2s,color .2s;
+  color:var(--mut);font-size:1.1rem;transition:border-color .2s,color .2s;
 }
 #grade-toggle:hover{border-color:var(--acc);color:var(--acc)}
 #grade-toggle.open{border-color:var(--acc);color:var(--acc)}
 #reset-btn{
-  height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--bor);
+  width:38px;height:38px;border-radius:8px;border:1px solid var(--bor);
   background:var(--panel-bg);backdrop-filter:blur(6px);
-  cursor:pointer;display:flex;align-items:center;gap:6px;
-  color:var(--mut);font-family:monospace;font-size:.58rem;letter-spacing:.08em;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  color:var(--mut);font-size:1.1rem;
   transition:border-color .2s,color .2s;
 }
 #reset-btn:hover{border-color:var(--acc);color:var(--acc)}
 #cam-toggle{
-  height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--bor);
+  width:38px;height:38px;border-radius:8px;border:1px solid var(--bor);
   background:var(--panel-bg);backdrop-filter:blur(6px);
-  cursor:pointer;display:flex;align-items:center;gap:6px;
-  color:var(--mut);font-family:monospace;font-size:.58rem;letter-spacing:.08em;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  color:var(--mut);font-size:1.1rem;
   transition:border-color .2s,color .2s;
 }
 #cam-toggle:hover{border-color:var(--acc);color:var(--acc)}
@@ -174,10 +174,10 @@ canvas:active{cursor:grabbing}
 
 /* Snapshot button */
 #snap-btn{
-  height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--bor);
+  width:38px;height:38px;border-radius:8px;border:1px solid var(--bor);
   background:var(--panel-bg);backdrop-filter:blur(6px);
-  cursor:pointer;display:flex;align-items:center;gap:6px;
-  color:var(--mut);font-family:monospace;font-size:.58rem;letter-spacing:.08em;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  color:var(--mut);font-size:1.1rem;
   transition:border-color .2s,color .2s,background .2s;
 }
 #snap-btn:hover{border-color:var(--acc);color:var(--acc)}
@@ -185,10 +185,10 @@ canvas:active{cursor:grabbing}
 
 /* Light panel button */
 #light-toggle{
-  height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--bor);
+  width:38px;height:38px;border-radius:8px;border:1px solid var(--bor);
   background:var(--panel-bg);backdrop-filter:blur(6px);
-  cursor:pointer;display:flex;align-items:center;gap:6px;
-  color:var(--mut);font-family:monospace;font-size:.58rem;letter-spacing:.08em;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  color:var(--mut);font-size:1.1rem;
   transition:border-color .2s,color .2s;
 }
 #light-toggle:hover{border-color:var(--acc);color:var(--acc)}
@@ -245,38 +245,45 @@ canvas:active{cursor:grabbing}
 
 /* ── MOBILE RESPONSIVE ── */
 @media(max-width:600px){
-  :root{--bh:88px}
+  :root{--bh:82px}
 
   /* Header */
-  header{padding:0 12px;height:48px}
-  #hname{display:none}
-  .chip:not(.on){display:none}
+  header{padding:0 10px;height:48px}
+  #hname{font-size:.55rem;letter-spacing:.04em;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .chip{font-size:.5rem;padding:2px 7px}
 
   /* Model info */
   .mtit{font-size:1.2rem}
   #minfo{top:12px;left:12px}
 
-  /* Hide hint on mobile */
+  /* Hide hint */
   #hint{display:none}
 
-  /* Toolbar buttons — stack into a row that scrolls */
-  #light-toggle,#snap-btn,#cam-toggle,#reset-btn,#grade-toggle{
-    position:static;height:28px;padding:0 8px;font-size:.5rem;
-  }
-  #viewer-toolbar{
-    position:absolute;top:8px;right:8px;z-index:15;
-    display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;max-width:calc(100vw - 16px);
-  }
+  /* Toolbar */
+  #viewer-toolbar{top:8px;right:8px;flex-wrap:wrap;justify-content:flex-end;max-width:calc(100vw - 16px)}
+  #light-toggle,#snap-btn,#cam-toggle,#reset-btn,#grade-toggle{width:34px;height:34px;font-size:1rem}
 
-  /* Panels — full width from top */
-  #light-panel,#cam-panel,#grade-panel{
-    right:8px;left:8px;width:auto;top:48px;
-  }
+  /* Panels — full width */
+  #light-panel,#cam-panel,#grade-panel{right:8px;left:8px;width:auto;top:52px}
 
-  /* Bottom bar cards */
-  .mc{width:88px;height:60px}
-  .upb{width:48px;height:60px}
-  #bar{padding:0 8px;gap:6px}
+  /* Bottom bar — full width equal cards, no scroll */
+  #bar{
+    padding:0 8px;gap:5px;
+    overflow-x:hidden;
+    justify-content:space-between;
+  }
+  .mc{
+    flex:1;min-width:0;height:66px;
+    border-radius:7px;
+  }
+  .upb{
+    flex-shrink:0;width:40px;height:66px;
+    border-radius:7px;font-size:.45rem;
+  }
+  .upb span{font-size:.85rem}
+  .cnm{font-size:.5rem}
+  .ctp{display:none}
+  .cpv{font-size:.85rem}
 
   /* Snap modal */
   #snap-box{padding:12px;gap:10px}
@@ -286,8 +293,8 @@ canvas:active{cursor:grabbing}
 }
 @media(max-width:380px){
   .mtit{font-size:1rem}
-  .mc{width:76px;height:56px}
-  .cnm{font-size:.5rem}
+  #hname{display:none}
+  .cpv{font-size:.75rem}
 }
 </style>
 </head>
@@ -314,10 +321,10 @@ canvas:active{cursor:grabbing}
 
     <!-- Toolbar -->
     <div id="viewer-toolbar">
-      <button id="light-toggle" title="Lighting">💡 LIGHTS</button>
-      <button id="snap-btn" title="Take Snapshot">📷 SNAP</button>
-      <button id="cam-toggle" title="Camera Position">📐 POSITION</button>
-      <button id="reset-btn" title="Reset Camera Position">⟳ RESET</button>
+      <button id="light-toggle" title="Lighting">💡</button>
+      <button id="snap-btn" title="Take Snapshot">📷</button>
+      <button id="cam-toggle" title="Camera Position">📐</button>
+      <button id="reset-btn" title="Reset Camera">⟳</button>
       <button id="grade-toggle" title="Color Grading">⚙</button>
     </div>
 
@@ -481,7 +488,15 @@ window.addEventListener('load', () => {
 });
 
 function fitCamera() {
-  DEF_R = 1.6;
+  // Scale zoom distance based on viewport — narrower screen needs more distance
+  // to show the same amount of model. Base is 1.6 at 800px wide.
+  const vw = viewEl.clientWidth;
+  const vh = viewEl.clientHeight;
+  const asp = vw / vh;
+  // On portrait mobile (asp < 1) the viewport is narrow — pull camera back
+  // On landscape / desktop keep the designed 1.6
+  const base = 1.6;
+  DEF_R = asp < 1 ? base * (1 / Math.max(asp, 0.4)) * 0.72 : base;
   CAM.r = DEF_R;
 }
 
@@ -975,9 +990,8 @@ function buildScene(gltf, buffers) {
   // After normalization model fits in a 1x1x1 box.
   // FOV=45deg, so tan(22.5deg)≈0.414. To see 0.5 units half-size: dist = 0.5/0.414 = 1.207
   // Multiply by 1.6 for comfortable framing with margin.
-  DEF_R = 1.6;
-
-  CAM.r = DEF_R; CAM.az=1.1345; CAM.el=-0.0873;
+  fitCamera();
+  CAM.az=1.1345; CAM.el=-0.0873;
   CAM.tx=0; CAM.ty=0; CAM.tz=0;
 
   // Save as default position — reset button restores this exact state
@@ -1434,6 +1448,7 @@ function captureThumb(modelId) {
   CAM.az = savedAz; CAM.el = savedEl; CAM.r = savedR;
   canvas.width = prevW; canvas.height = prevH;
   gl.viewport(0, 0, prevW, prevH);
+  markDirty();
 
   const model = models.find(m => m && m.id === modelId);
   if (model) { model.thumb = thumb; renderCards(); }
@@ -1515,7 +1530,7 @@ function takeSnapshot() {
 
   const btn = $('snap-btn');
   btn.classList.add('capturing');
-  btn.textContent = '\u23F3 CAPTURING\u2026';
+  btn.textContent = '⏳';
 
   // Render one clean frame to main canvas, then copy to offscreen 2D canvas
   // to strip the background — we use alpha blending trick:
@@ -1579,7 +1594,7 @@ function takeSnapshot() {
   };
 
   btn.classList.remove('capturing');
-  btn.textContent = '\uD83D\uDCF7 SNAP';
+  btn.textContent = '📷';
 
   // Restore normal clear color
   gl.clearColor(1.0, 1.0, 1.0, 1);
@@ -1803,9 +1818,11 @@ function captureThumbFromBuffer(m) {
     setTimeout(() => {
       captureThumb(m.id);
       MESHES = prevMeshes;
+      markDirty();
     }, 800);
   } catch(e) {
     MESHES = prevMeshes;
+    markDirty();
   }
 }
 
