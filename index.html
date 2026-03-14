@@ -245,7 +245,7 @@ canvas:active{cursor:grabbing}
 
 /* ── MOBILE RESPONSIVE ── */
 @media(max-width:600px){
-  :root{--bh:82px}
+  :root{--bh:76px}
 
   /* Header */
   header{padding:0 10px;height:48px}
@@ -266,24 +266,29 @@ canvas:active{cursor:grabbing}
   /* Panels — full width */
   #light-panel,#cam-panel,#grade-panel{right:8px;left:8px;width:auto;top:52px}
 
-  /* Bottom bar — full width equal cards, no scroll */
+  /* Bottom bar — fixed height, cards fill width */
   #bar{
+    height:var(--bh);
     padding:0 8px;gap:5px;
     overflow-x:hidden;
     justify-content:space-between;
+    align-items:center;
+    flex-shrink:0;
   }
   .mc{
-    flex:1;min-width:0;height:66px;
+    flex:1;min-width:0;
+    height:58px;
     border-radius:7px;
   }
   .upb{
-    flex-shrink:0;width:40px;height:66px;
-    border-radius:7px;font-size:.45rem;
+    flex-shrink:0;width:38px;height:58px;
+    border-radius:7px;font-size:.45rem;gap:2px;
   }
-  .upb span{font-size:.85rem}
-  .cnm{font-size:.5rem}
+  .upb span{font-size:.8rem}
+  .cnm{font-size:.48rem}
   .ctp{display:none}
-  .cpv{font-size:.85rem}
+  .cpv{font-size:.8rem}
+  .cbtn{width:14px;height:14px;font-size:.55rem}
 
   /* Snap modal */
   #snap-box{padding:12px;gap:10px}
@@ -294,7 +299,8 @@ canvas:active{cursor:grabbing}
 @media(max-width:380px){
   .mtit{font-size:1rem}
   #hname{display:none}
-  .cpv{font-size:.75rem}
+  .mc{height:54px}
+  .upb{height:54px;width:34px}
 }
 </style>
 </head>
@@ -488,15 +494,11 @@ window.addEventListener('load', () => {
 });
 
 function fitCamera() {
-  // Scale zoom distance based on viewport — narrower screen needs more distance
-  // to show the same amount of model. Base is 1.6 at 800px wide.
-  const vw = viewEl.clientWidth;
-  const vh = viewEl.clientHeight;
-  const asp = vw / vh;
-  // On portrait mobile (asp < 1) the viewport is narrow — pull camera back
-  // On landscape / desktop keep the designed 1.6
+  const asp = viewEl.clientWidth / Math.max(viewEl.clientHeight, 1);
   const base = 1.6;
-  DEF_R = asp < 1 ? base * (1 / Math.max(asp, 0.4)) * 0.72 : base;
+  // Portrait: widen FOV equivalent by pulling camera back.
+  // asp ~0.55 on typical phone → DEF_R ~3.5 so wide flat models fit.
+  DEF_R = asp < 1 ? base / Math.max(asp * 0.65, 0.25) : base;
   CAM.r = DEF_R;
 }
 
