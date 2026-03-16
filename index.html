@@ -497,13 +497,13 @@ const viewEl = $('viewer');
 // ── THREE.JS SETUP ───────────────────────────────────────────────
 const renderer = new THREE.WebGLRenderer({
   canvas: $('c'),
-  antialias: true,
+  antialias: false,
   alpha: false,
-  powerPreference: 'high-performance'
+  powerPreference: 'low-power'
 });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
 renderer.outputEncoding = THREE.sRGBEncoding;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMapping = THREE.ReinhardToneMapping;
 renderer.toneMappingExposure = 1.0;
 renderer.shadowMap.enabled = false;
 renderer.physicallyCorrectLights = false;
@@ -552,12 +552,13 @@ function loadHDRI(onDone) {
   rgbe.setDataType(THREE.HalfFloatType);
   rgbe.load('ferndale_studio_07_1k.hdr',
     tex => {
-      ENV_TEX = pmrem.fromEquirectangular(tex, { maxTextureSize: 512 }).texture;
+      ENV_TEX = pmrem.fromEquirectangular(tex, { maxTextureSize: 256 }).texture;
       tex.dispose();
+      pmrem.dispose();
       if (onDone) onDone();
     },
     undefined,
-    () => { ENV_TEX = makeStudioEnv(); if (onDone) onDone(); }
+    () => { ENV_TEX = makeStudioEnv(); pmrem.dispose(); if (onDone) onDone(); }
   );
 }
 
