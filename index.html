@@ -542,7 +542,7 @@ function makeStudioEnv() {
 function applyEnv() {
   if (!ENV_TEX) return;
   scene.environment = ENV_TEX;
-  scene.environmentIntensity = HDRI.enabled;
+  renderer.toneMappingExposure = Math.max(0.01, HDRI.enabled);
   scene.background = new THREE.Color(BG_COLOR);
   markDirty();
 }
