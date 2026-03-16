@@ -396,21 +396,21 @@ canvas:active{cursor:grabbing}
     <div id="light-panel">
       <div class="gp-title">Lighting</div>
       <div class="gp-row">
-        <div class="gp-label"><span>Key Light</span><em id="key-val">1.50</em></div>
-        <input class="gp-slider" type="range" id="lkey" min="0" max="5" step="0.01" value="1.50"/>
+        <div class="gp-label"><span>Key Light</span><em id="key-val">0.60</em></div>
+        <input class="gp-slider" type="range" id="lkey" min="0" max="5" step="0.01" value="0.60"/>
       </div>
       <div class="gp-row">
-        <div class="gp-label"><span>Fill Light</span><em id="fill-val">0.40</em></div>
-        <input class="gp-slider" type="range" id="lfill" min="0" max="5" step="0.01" value="0.40"/>
+        <div class="gp-label"><span>Fill Light</span><em id="fill-val">0.15</em></div>
+        <input class="gp-slider" type="range" id="lfill" min="0" max="5" step="0.01" value="0.15"/>
       </div>
       <div class="gp-row">
-        <div class="gp-label"><span>Back Light</span><em id="back-val">2.00</em></div>
-        <input class="gp-slider" type="range" id="lback" min="0" max="5" step="0.01" value="2.00"/>
+        <div class="gp-label"><span>Back Light</span><em id="back-val">0.80</em></div>
+        <input class="gp-slider" type="range" id="lback" min="0" max="5" step="0.01" value="0.80"/>
       </div>
       <div class="gp-divider"></div>
       <div class="gp-row">
-        <div class="gp-label"><span>Ambient</span><em id="amb-val">0.30</em></div>
-        <input class="gp-slider" type="range" id="lamb" min="0" max="2" step="0.01" value="0.30"/>
+        <div class="gp-label"><span>Ambient</span><em id="amb-val">0.10</em></div>
+        <input class="gp-slider" type="range" id="lamb" min="0" max="2" step="0.01" value="0.10"/>
       </div>
       <div class="gp-divider"></div>
       <div class="gp-row">
@@ -591,8 +591,8 @@ scene.background = new THREE.Color(BG_COLOR);
 
 // ── LIGHTS ───────────────────────────────────────────────────────
 // ── LIGHT PANEL ──────────────────────────────────────────────────
-const LIGHT_POWER          = { key: 1.5, fill: 0.4, back: 2.0, amb: 0.3 };
-const LIGHT_POWER_DEFAULTS = { key: 1.5, fill: 0.4, back: 2.0, amb: 0.3 };
+const LIGHT_POWER          = { key: 0.6, fill: 0.15, back: 0.8, amb: 0.1 };
+const LIGHT_POWER_DEFAULTS = { key: 0.6, fill: 0.15, back: 0.8, amb: 0.1 };
 
 const lights = {
   key:  new THREE.DirectionalLight(0xfff8f0, LIGHT_POWER_DEFAULTS.key),
@@ -1060,8 +1060,7 @@ function initLightPanel() {
     for (const [id, key] of Object.entries(MAP)) {
       const el = $(id); el.value = LIGHT_POWER_DEFAULTS[key]; el.dispatchEvent(new Event('input'));
     }
-    hdriEl.value = '1.50'; hdriEl.dispatchEvent(new Event('input'));
-  });
+    hdriEl.value = '1.50'; hdriEl.dispatchEvent(new Event('input'));  });
 }
 
 function initGradingPanel() {
