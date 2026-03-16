@@ -396,21 +396,26 @@ canvas:active{cursor:grabbing}
     <div id="light-panel">
       <div class="gp-title">Lighting</div>
       <div class="gp-row">
-        <div class="gp-label"><span>Key Light</span><em id="key-val">0.30</em></div>
-        <input class="gp-slider" type="range" id="lkey" min="0" max="2" step="0.01" value="0.30"/>
+        <div class="gp-label"><span>Key Light</span><em id="key-val">1.50</em></div>
+        <input class="gp-slider" type="range" id="lkey" min="0" max="5" step="0.01" value="1.50"/>
       </div>
       <div class="gp-row">
-        <div class="gp-label"><span>Fill Light</span><em id="fill-val">0.05</em></div>
-        <input class="gp-slider" type="range" id="lfill" min="0" max="2" step="0.01" value="0.05"/>
+        <div class="gp-label"><span>Fill Light</span><em id="fill-val">0.40</em></div>
+        <input class="gp-slider" type="range" id="lfill" min="0" max="5" step="0.01" value="0.40"/>
       </div>
       <div class="gp-row">
-        <div class="gp-label"><span>Back Light</span><em id="back-val">1.00</em></div>
-        <input class="gp-slider" type="range" id="lback" min="0" max="2" step="0.01" value="1.00"/>
+        <div class="gp-label"><span>Back Light</span><em id="back-val">2.00</em></div>
+        <input class="gp-slider" type="range" id="lback" min="0" max="5" step="0.01" value="2.00"/>
       </div>
       <div class="gp-divider"></div>
       <div class="gp-row">
-        <div class="gp-label"><span>Ambient</span><em id="amb-val">0.20</em></div>
-        <input class="gp-slider" type="range" id="lamb" min="0" max="1" step="0.01" value="0.20"/>
+        <div class="gp-label"><span>Ambient</span><em id="amb-val">0.30</em></div>
+        <input class="gp-slider" type="range" id="lamb" min="0" max="2" step="0.01" value="0.30"/>
+      </div>
+      <div class="gp-divider"></div>
+      <div class="gp-row">
+        <div class="gp-label"><span>HDRI Intensity</span><em id="hdri-val">1.50</em></div>
+        <input class="gp-slider" type="range" id="hdri" min="0" max="3" step="0.01" value="1.50"/>
       </div>
       <div class="gp-divider"></div>
       <button class="gp-reset" id="light-reset">RESET TO DEFAULTS</button>
@@ -444,15 +449,6 @@ canvas:active{cursor:grabbing}
       <div class="gp-row">
         <div class="gp-label"><span>Cool (B)</span><em id="cool-val">1.00</em></div>
         <input class="gp-slider" type="range" id="cool" min="0.85" max="1.2" step="0.01" value="1.00"/>
-      </div>
-      <div class="gp-divider"></div>
-      <div class="gp-row">
-        <div class="gp-label"><span>HDRI Intensity</span><em id="hdri-val">1.00</em></div>
-        <input class="gp-slider" type="range" id="hdri" min="0" max="2" step="0.01" value="1.00"/>
-      </div>
-      <div class="gp-row">
-        <div class="gp-label"><span>Roughness</span><em id="rough-val">0.50</em></div>
-        <input class="gp-slider" type="range" id="rough" min="0" max="1" step="0.01" value="0.50"/>
       </div>
       <div class="gp-divider"></div>
       <button class="gp-reset" id="grade-reset">RESET TO DEFAULTS</button>
@@ -510,7 +506,7 @@ renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.0;
 renderer.shadowMap.enabled = false;
-renderer.physicallyCorrectLights = true;
+renderer.physicallyCorrectLights = false;
 
 const scene  = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(45, 1, 0.01, 100);
@@ -593,8 +589,8 @@ scene.background = new THREE.Color(BG_COLOR);
 
 // ── LIGHTS ───────────────────────────────────────────────────────
 // ── LIGHT PANEL ──────────────────────────────────────────────────
-const LIGHT_POWER          = { key: 0.30, fill: 0.05, back: 1.00, amb: 0.20 };
-const LIGHT_POWER_DEFAULTS = { key: 0.30, fill: 0.05, back: 1.00, amb: 0.20 };
+const LIGHT_POWER          = { key: 1.5, fill: 0.4, back: 2.0, amb: 0.3 };
+const LIGHT_POWER_DEFAULTS = { key: 1.5, fill: 0.4, back: 2.0, amb: 0.3 };
 
 const lights = {
   key:  new THREE.DirectionalLight(0xfff8f0, LIGHT_POWER_DEFAULTS.key),
@@ -816,37 +812,14 @@ function updateLights() {
 // Three.js handles tonemapping; we apply post-process via CSS filter on canvas
 const GRADE = { vibrance: 0.48, saturation: 0.92, contrast: 1.20, warm: 1.00, tint: 1.00, cool: 1.00 };
 const GRADE_DEFAULTS = { ...GRADE };
-const HDRI = { enabled: 1.0, roughness: 0.5 };
+const HDRI = { enabled: 1.5 };
 
 function applyGrading() {
-  // Map to CSS filter
-  const sat  = GRADE.saturation;
-  const con  = GRADE.contrast;
-  const warm = GRADE.warm;
-  const cool = GRADE.cool;
-  // Brightness from tone multiplier
-  const brightness = (warm + GRADE.tint + cool) / 3;
-  canvasEl.style.filter = [
-    `saturate(${sat})`,
-    `contrast(${con})`,
-    `brightness(${brightness.toFixed(3)})`
-  ].join(' ');
-  // HDRI exposure via tone mapping
+  const sat        = GRADE.saturation;
+  const con        = GRADE.contrast;
+  const brightness = (GRADE.warm + GRADE.tint + GRADE.cool) / 3;
+  canvasEl.style.filter = `saturate(${sat}) contrast(${con}) brightness(${brightness.toFixed(3)})`;
   renderer.toneMappingExposure = Math.max(0.01, HDRI.enabled);
-  // Roughness: update all materials
-  if (currentObject) {
-    currentObject.traverse(node => {
-      if (node.isMesh) {
-        const mats = Array.isArray(node.material) ? node.material : [node.material];
-        mats.forEach(m => {
-          if (m.roughness !== undefined) {
-            m.roughness = Math.max(0.05, Math.min(1.0, HDRI.roughness));
-            m.needsUpdate = true;
-          }
-        });
-      }
-    });
-  }
   markDirty();
 }
 
@@ -1062,12 +1035,30 @@ function initLightPanel() {
   };
   wire('lkey','key','key-val'); wire('lfill','fill','fill-val');
   wire('lback','back','back-val'); wire('lamb','amb','amb-val');
+
+  // HDRI intensity slider
+  const hdriEl = $('hdri'), hdriVl = $('hdri-val');
+  const updateHdriTrack = () => {
+    const pct = (HDRI.enabled / 3) * 100;
+    hdriEl.style.background = `linear-gradient(to right,var(--acc) ${pct}%,rgba(0,0,0,.12) ${pct}%)`;
+  };
+  hdriEl.addEventListener('input', () => {
+    HDRI.enabled = parseFloat(hdriEl.value);
+    hdriVl.textContent = HDRI.enabled.toFixed(2);
+    updateHdriTrack();
+    applyEnv(HDRI.enabled);
+    applyGrading();
+  });
+  updateHdriTrack();
+
   $('light-reset').addEventListener('click', () => {
     Object.assign(LIGHT_POWER, LIGHT_POWER_DEFAULTS);
+    HDRI.enabled = 1.5;
     const MAP = { lkey:'key', lfill:'fill', lback:'back', lamb:'amb' };
     for (const [id, key] of Object.entries(MAP)) {
       const el = $(id); el.value = LIGHT_POWER_DEFAULTS[key]; el.dispatchEvent(new Event('input'));
     }
+    hdriEl.value = '1.50'; hdriEl.dispatchEvent(new Event('input'));
   });
 }
 
@@ -1095,30 +1086,12 @@ function initGradingPanel() {
   wire('vib','vibrance','vib-val',2); wire('sat','saturation','sat-val',2);
   wire('con','contrast','con-val',2); wire('warm','warm','warm-val',2);
   wire('tint','tint','tint-val',2);   wire('cool','cool','cool-val',2);
-  const wireHDRI = (id, key, valId) => {
-    const el = $(id), vl = $(valId);
-    const updateTrack = () => {
-      const pct = ((parseFloat(el.value) - parseFloat(el.min)) / (parseFloat(el.max) - parseFloat(el.min))) * 100;
-      el.style.background = `linear-gradient(to right,var(--acc) ${pct}%,rgba(0,0,0,.12) ${pct}%)`;
-    };
-    el.addEventListener('input', () => {
-      HDRI[key] = parseFloat(el.value);
-      vl.textContent = HDRI[key].toFixed(2);
-      updateTrack();
-      applyGrading();
-    });
-    updateTrack();
-  };
-  wireHDRI('hdri','enabled','hdri-val'); wireHDRI('rough','roughness','rough-val');
   $('grade-reset').addEventListener('click', () => {
     Object.assign(GRADE, GRADE_DEFAULTS);
-    HDRI.enabled = 1.0; HDRI.roughness = 0.5;
     const MAP = { vib:'vibrance', sat:'saturation', con:'contrast', warm:'warm', tint:'tint', cool:'cool' };
     for (const [id, key] of Object.entries(MAP)) {
       const el = document.getElementById(id); el.value = GRADE_DEFAULTS[key]; el.dispatchEvent(new Event('input'));
     }
-    $('hdri').value = '1.00'; $('hdri').dispatchEvent(new Event('input'));
-    $('rough').value = '0.50'; $('rough').dispatchEvent(new Event('input'));
   });
 }
 
