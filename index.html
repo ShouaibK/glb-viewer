@@ -487,6 +487,7 @@ canvas:active{cursor:grabbing}
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/loaders/RGBELoader.js"></script>
 <script>
 // ── HELPERS ──────────────────────────────────────────────────────
 const $     = id => document.getElementById(id);
@@ -515,21 +516,40 @@ const scene  = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(45, 1, 0.01, 100);
 
 // ── PMREM / HDRI environment (neutral studio) ────────────────────
-// Generate neutral studio environment using PMREMGenerator.fromScene
-const pmrem = new THREE.PMREMGenerator(renderer);
+// ── HDRI ENVIRONMENT ─────────────────────────────────────────────
+const pmrem  = new THREE.PMREMGenerator(renderer);
 pmrem.compileEquirectangularShader();
+let ENV_TEX  = null;
+let HDRI_LOADED = false;
+
+function loadHDRI(onDone) {
+  // Try to load the .hdr file from same directory
+  // Falls back to procedural studio env if not found
+  const rgbe = new THREE.RGBELoader();
+  rgbe.setDataType(THREE.HalfFloatType);
+  rgbe.load('monochrome_studio_02_4k.hdr',
+    tex => {
+      ENV_TEX = pmrem.fromEquirectangular(tex).texture;
+      tex.dispose();
+      HDRI_LOADED = true;
+      if (onDone) onDone();
+    },
+    undefined,
+    () => {
+      // HDR not found — fallback to procedural studio
+      ENV_TEX = makeStudioEnv();
+      if (onDone) onDone();
+    }
+  );
+}
 
 function makeStudioEnv() {
-  // Build env from a simple lit scene — no external files needed
   const envScene = new THREE.Scene();
-  // Gradient sky sphere
   const sky = new THREE.Mesh(
     new THREE.SphereGeometry(10, 16, 16),
-    new THREE.MeshBasicMaterial({ side: THREE.BackSide,
-      color: new THREE.Color(0.95, 0.97, 1.0) })
+    new THREE.MeshBasicMaterial({ side: THREE.BackSide, color: new THREE.Color(0.95, 0.97, 1.0) })
   );
   envScene.add(sky);
-  // Floor disc (dark)
   const floor = new THREE.Mesh(
     new THREE.CircleGeometry(8, 32),
     new THREE.MeshBasicMaterial({ color: new THREE.Color(0.15, 0.17, 0.20) })
@@ -537,14 +557,12 @@ function makeStudioEnv() {
   floor.rotation.x = -Math.PI / 2;
   floor.position.y = -5;
   envScene.add(floor);
-  // Top bright area light sim
   const top = new THREE.Mesh(
     new THREE.SphereGeometry(1.5, 16, 16),
     new THREE.MeshBasicMaterial({ color: new THREE.Color(3.0, 3.0, 3.0) })
   );
   top.position.set(0, 8, 0);
   envScene.add(top);
-  // Side fill
   const side1 = new THREE.Mesh(
     new THREE.SphereGeometry(1.0, 16, 16),
     new THREE.MeshBasicMaterial({ color: new THREE.Color(1.2, 1.2, 1.4) })
@@ -557,17 +575,15 @@ function makeStudioEnv() {
   );
   side2.position.set(7, 2, -4);
   envScene.add(side2);
-
   return pmrem.fromScene(envScene, 0.04).texture;
 }
 
-let ENV_TEX = null;
 function applyEnv(intensity) {
-  if (!ENV_TEX) ENV_TEX = makeStudioEnv();
+  if (!ENV_TEX) return;
   scene.environment = ENV_TEX;
   scene.environmentIntensity = intensity !== undefined ? intensity : HDRI.enabled;
   scene.background = new THREE.Color(BG_COLOR);
-  needsRender = true;
+  markDirty();
 }
 
 // ── BACKGROUND ───────────────────────────────────────────────────
@@ -1192,7 +1208,6 @@ window.addEventListener('unhandledrejection', e => {
 window.addEventListener('load', () => {
   resize();
   renderCards();
-  setTimeout(ovOff, 500);
   markDirtyFor(1000);
   initCamPanel();
   initLightPanel();
@@ -1200,7 +1215,13 @@ window.addEventListener('load', () => {
   initSnapshot();
   initTheme();
   $('reset-btn').addEventListener('click', () => { Object.assign(CAM, CAM_DEFAULT); markDirty(); });
-  autoLoadModels();
+
+  // Load HDRI first, then models
+  loadHDRI(() => {
+    applyEnv();
+    setTimeout(ovOff, 300);
+    autoLoadModels();
+  });
 });
 </script>
 </body>
