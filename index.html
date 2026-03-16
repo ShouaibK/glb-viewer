@@ -618,20 +618,25 @@ function resize() {
 window.addEventListener('resize', resize);
 
 // ── RENDER LOOP ──────────────────────────────────────────────────
-let needsRender = true;
-let renderUntil = 0;
-const markDirty    = ()   => { needsRender = true; };
-const markDirtyFor = (ms) => { renderUntil = Date.now() + ms; needsRender = true; };
+let rafId = null;
 
-function raf() {
-  requestAnimationFrame(raf);
-  if (Date.now() < renderUntil) needsRender = true;
-  if (!needsRender) return;
-  needsRender = false;
+function stopLoop() {
+  if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+}
+
+function startLoop() {
+  if (rafId) return;
+  rafId = requestAnimationFrame(loop);
+}
+
+function loop() {
+  rafId = null;
   updateCamera();
   renderer.render(scene, camera);
 }
-raf();
+
+const markDirty = () => startLoop();
+const markDirtyFor = (ms) => { startLoop(); setTimeout(stopLoop, ms); };
 
 // ── INPUT ─────────────────────────────────────────────────────────
 let drag = { on: false, btn: 0, x: 0, y: 0 };
@@ -641,7 +646,7 @@ canvasEl.addEventListener('mousedown', e => {
   drag = { on: true, btn: e.button, x: e.clientX, y: e.clientY };
   e.preventDefault();
 });
-window.addEventListener('mouseup', () => drag.on = false);
+window.addEventListener('mouseup', () => { drag.on = false; stopLoop(); });
 window.addEventListener('mousemove', e => {
   if (!drag.on) return;
   const dx = (e.clientX - drag.x) * 0.013;
@@ -699,6 +704,7 @@ canvasEl.addEventListener('touchmove', e => {
 }, { passive: false });
 canvasEl.addEventListener('touchend', e => {
   for (const t of e.changedTouches) delete touches[t.identifier];
+  if (e.touches.length === 0) stopLoop();
 }, { passive: false });
 
 // ── GLB LOADER ───────────────────────────────────────────────────
