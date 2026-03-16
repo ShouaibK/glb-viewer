@@ -308,7 +308,7 @@ canvas:active{cursor:grabbing}
     <div class="logo"><div class="dot"></div>GLB Viewer</div>
     <div id="hname">NO MODEL LOADED</div>
     <div class="chips">
-      <div class="chip on">WebGL2</div>
+      <div class="chip on">THREE.JS</div>
       <div class="chip" id="tc">— TRI</div>
       <button id="theme-btn" title="Toggle dark/light mode"></button>
     </div>
@@ -421,29 +421,38 @@ canvas:active{cursor:grabbing}
       <div class="gp-title">Color Grading</div>
 
       <div class="gp-row">
-        <div class="gp-label"><span>Vibrance</span><em id="vib-val">0.50</em></div>
-        <input class="gp-slider" type="range" id="vib" min="0" max="1" step="0.01" value="0.5"/>
+        <div class="gp-label"><span>Vibrance</span><em id="vib-val">0.48</em></div>
+        <input class="gp-slider" type="range" id="vib" min="0" max="1" step="0.01" value="0.48"/>
       </div>
       <div class="gp-row">
-        <div class="gp-label"><span>Saturation</span><em id="sat-val">1.10</em></div>
-        <input class="gp-slider" type="range" id="sat" min="0.5" max="2" step="0.01" value="1.1"/>
+        <div class="gp-label"><span>Saturation</span><em id="sat-val">0.92</em></div>
+        <input class="gp-slider" type="range" id="sat" min="0.5" max="2" step="0.01" value="0.92"/>
       </div>
       <div class="gp-row">
-        <div class="gp-label"><span>Contrast</span><em id="con-val">1.40</em></div>
-        <input class="gp-slider" type="range" id="con" min="0.5" max="2" step="0.01" value="1.4"/>
+        <div class="gp-label"><span>Contrast</span><em id="con-val">1.20</em></div>
+        <input class="gp-slider" type="range" id="con" min="0.5" max="2" step="0.01" value="1.20"/>
       </div>
       <div class="gp-divider"></div>
       <div class="gp-row">
-        <div class="gp-label"><span>Warmth (R)</span><em id="warm-val">1.04</em></div>
-        <input class="gp-slider" type="range" id="warm" min="0.85" max="1.2" step="0.01" value="1.04"/>
+        <div class="gp-label"><span>Warmth (R)</span><em id="warm-val">1.00</em></div>
+        <input class="gp-slider" type="range" id="warm" min="0.85" max="1.2" step="0.01" value="1.00"/>
       </div>
       <div class="gp-row">
-        <div class="gp-label"><span>Tint (G)</span><em id="tint-val">1.01</em></div>
-        <input class="gp-slider" type="range" id="tint" min="0.85" max="1.2" step="0.01" value="1.01"/>
+        <div class="gp-label"><span>Tint (G)</span><em id="tint-val">1.00</em></div>
+        <input class="gp-slider" type="range" id="tint" min="0.85" max="1.2" step="0.01" value="1.00"/>
       </div>
       <div class="gp-row">
-        <div class="gp-label"><span>Cool (B)</span><em id="cool-val">0.97</em></div>
-        <input class="gp-slider" type="range" id="cool" min="0.85" max="1.2" step="0.01" value="0.97"/>
+        <div class="gp-label"><span>Cool (B)</span><em id="cool-val">1.00</em></div>
+        <input class="gp-slider" type="range" id="cool" min="0.85" max="1.2" step="0.01" value="1.00"/>
+      </div>
+      <div class="gp-divider"></div>
+      <div class="gp-row">
+        <div class="gp-label"><span>HDRI Intensity</span><em id="hdri-val">1.00</em></div>
+        <input class="gp-slider" type="range" id="hdri" min="0" max="2" step="0.01" value="1.00"/>
+      </div>
+      <div class="gp-row">
+        <div class="gp-label"><span>Roughness</span><em id="rough-val">0.50</em></div>
+        <input class="gp-slider" type="range" id="rough" min="0" max="1" step="0.01" value="0.50"/>
       </div>
       <div class="gp-divider"></div>
       <button class="gp-reset" id="grade-reset">RESET TO DEFAULTS</button>
@@ -476,50 +485,116 @@ canvas:active{cursor:grabbing}
     <div class="snap-info" id="snap-info"></div>
   </div>
 </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/loaders/GLTFLoader.js"></script>
 <script>
-// WebGL2 GLB Viewer — zero dependencies
-
+// ── HELPERS ──────────────────────────────────────────────────────
 const $     = id => document.getElementById(id);
-const canvas = $('c');
-const viewEl = $('viewer');
-let gl, PROG, U = {};
-
 const ovOff = () => $('ov').classList.add('off');
 const ovOn  = () => $('ov').classList.remove('off');
 const setP  = p  => $('pf').style.width = p + '%';
 const setT  = t  => $('pt').textContent = t;
 
-// ── INIT ─────────────────────────────────────────────────────────
-window.addEventListener('load', () => {
-  gl = canvas.getContext('webgl2', { antialias: true, alpha: false, powerPreference: 'high-performance' });
-  if (!gl) { alert('WebGL2 not supported in this browser'); return; }
-  resize();
-  window.addEventListener('resize', resize);
-  try {
-    PROG = buildProg(VS, FS);
-    cacheU();
-    initBG();
-    initShadow();
-  } catch(e) {
-    alert('Shader compile error: ' + e.message);
-    return;
-  }
-  renderCards();
-  raf();
-  setTimeout(ovOff, 500);
-  markDirtyFor(2000);
-  autoLoadModels();
-  initGradingPanel();
-  initLightPanel();
-  initCamPanel();
-  initSnapshot();
-  initTheme();
+const viewEl = $('viewer');
 
-  $('reset-btn').addEventListener('click', () => {
-    Object.assign(CAM, CAM_DEFAULT);
-    markDirty();
-  });
+// ── THREE.JS SETUP ───────────────────────────────────────────────
+const renderer = new THREE.WebGLRenderer({
+  canvas: $('c'),
+  antialias: true,
+  alpha: false,
+  powerPreference: 'high-performance'
 });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 3));
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+renderer.shadowMap.enabled = false;
+renderer.physicallyCorrectLights = true;
+
+const scene  = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(45, 1, 0.01, 100);
+
+// ── PMREM / HDRI environment (neutral studio) ────────────────────
+// Generate neutral studio environment using PMREMGenerator.fromScene
+const pmrem = new THREE.PMREMGenerator(renderer);
+pmrem.compileEquirectangularShader();
+
+function makeStudioEnv() {
+  // Build env from a simple lit scene — no external files needed
+  const envScene = new THREE.Scene();
+  // Gradient sky sphere
+  const sky = new THREE.Mesh(
+    new THREE.SphereGeometry(10, 16, 16),
+    new THREE.MeshBasicMaterial({ side: THREE.BackSide,
+      color: new THREE.Color(0.95, 0.97, 1.0) })
+  );
+  envScene.add(sky);
+  // Floor disc (dark)
+  const floor = new THREE.Mesh(
+    new THREE.CircleGeometry(8, 32),
+    new THREE.MeshBasicMaterial({ color: new THREE.Color(0.15, 0.17, 0.20) })
+  );
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.y = -5;
+  envScene.add(floor);
+  // Top bright area light sim
+  const top = new THREE.Mesh(
+    new THREE.SphereGeometry(1.5, 16, 16),
+    new THREE.MeshBasicMaterial({ color: new THREE.Color(3.0, 3.0, 3.0) })
+  );
+  top.position.set(0, 8, 0);
+  envScene.add(top);
+  // Side fill
+  const side1 = new THREE.Mesh(
+    new THREE.SphereGeometry(1.0, 16, 16),
+    new THREE.MeshBasicMaterial({ color: new THREE.Color(1.2, 1.2, 1.4) })
+  );
+  side1.position.set(-7, 3, 4);
+  envScene.add(side1);
+  const side2 = new THREE.Mesh(
+    new THREE.SphereGeometry(0.8, 16, 16),
+    new THREE.MeshBasicMaterial({ color: new THREE.Color(1.4, 1.3, 1.2) })
+  );
+  side2.position.set(7, 2, -4);
+  envScene.add(side2);
+
+  return pmrem.fromScene(envScene, 0.04).texture;
+}
+
+let ENV_TEX = null;
+function applyEnv(intensity) {
+  if (!ENV_TEX) ENV_TEX = makeStudioEnv();
+  scene.environment = ENV_TEX;
+  scene.environmentIntensity = intensity !== undefined ? intensity : HDRI.enabled;
+  scene.background = new THREE.Color(BG_COLOR);
+  needsRender = true;
+}
+
+// ── BACKGROUND ───────────────────────────────────────────────────
+let BG_COLOR = 0xf0f2f7;
+let isDark = false;
+scene.background = new THREE.Color(BG_COLOR);
+
+// ── LIGHTS ───────────────────────────────────────────────────────
+// ── LIGHT PANEL ──────────────────────────────────────────────────
+const LIGHT_POWER          = { key: 0.30, fill: 0.05, back: 1.00, amb: 0.20 };
+const LIGHT_POWER_DEFAULTS = { key: 0.30, fill: 0.05, back: 1.00, amb: 0.20 };
+
+const lights = {
+  key:  new THREE.DirectionalLight(0xfff8f0, LIGHT_POWER_DEFAULTS.key),
+  fill: new THREE.DirectionalLight(0xf0f8ff, LIGHT_POWER_DEFAULTS.fill),
+  back: new THREE.DirectionalLight(0xffffff, LIGHT_POWER_DEFAULTS.back),
+  amb:  new THREE.AmbientLight(0xffffff,     LIGHT_POWER_DEFAULTS.amb)
+};
+lights.key.position.set( 5, -2,  8);
+lights.fill.position.set(-5,  2,  8);
+lights.back.position.set( 0,  5, -8);
+scene.add(lights.key, lights.fill, lights.back, lights.amb);
+
+// ── CAMERA ORBIT STATE ───────────────────────────────────────────
+const CAM = { az: 1.1345, el: -0.0873, r: 1.6, tx: 0, ty: 0, tz: 0 };
+let DEF_R = 1.6;
+let CAM_DEFAULT = { ...CAM };
 
 function fitCamera() {
   const asp = viewEl.clientWidth / Math.max(viewEl.clientHeight, 1);
@@ -527,263 +602,54 @@ function fitCamera() {
   CAM.r = DEF_R;
 }
 
-function resize() {
-  const w = viewEl.clientWidth, h = viewEl.clientHeight;
-  const dpr = Math.min(devicePixelRatio, 3);
-  canvas.width  = Math.round(w * dpr);
-  canvas.height = Math.round(h * dpr);
-  if (gl) gl.viewport(0, 0, canvas.width, canvas.height);
-  fitCamera();
-  markDirty();
-}
-
-// ── SHADERS ──────────────────────────────────────────────────────
-const VS = `#version 300 es
-precision highp float;
-in vec3 aP;
-in vec3 aN;
-in vec2 aU;
-uniform mat4 uMVP;
-uniform mat4 uM;
-uniform mat3 uNM;
-out vec3 vN;
-out vec3 vW;
-out vec2 vU;
-void main(){
-  vec4 wp  = uM * vec4(aP, 1.0);
-  vW       = wp.xyz;
-  vN       = normalize(uNM * aN);
-  vU       = aU;
-  gl_Position = uMVP * vec4(aP, 1.0);
-}`;
-
-const FS = `#version 300 es
-precision highp float;
-in vec3 vN, vW;
-in vec2 vU;
-uniform vec3      uCam;
-uniform vec4      uCol;
-uniform sampler2D uTex;
-uniform int       uHT;
-uniform vec3 uL1Dir; uniform vec3 uL1Col;
-uniform vec3 uL2Dir; uniform vec3 uL2Col;
-uniform vec3 uL3Dir; uniform vec3 uL3Col;
-uniform vec3 uAmb;
-// Color grading uniforms
-uniform float uVibrance;
-uniform float uSaturation;
-uniform float uContrast;
-uniform vec3  uTone;
-out vec4 fragColor;
-
-// ACES filmic tone map
-vec3 aces(vec3 x){
-  return clamp((x*(2.51*x+0.03))/(x*(2.43*x+0.59)+0.14),0.0,1.0);
-}
-
-// Luminance (perceptual weights)
-float luma(vec3 c){ return dot(c, vec3(0.2126, 0.7152, 0.0722)); }
-
-// Saturation boost — blend toward grey by factor s (s>1 = more saturated)
-vec3 saturate(vec3 c, float s){
-  return mix(vec3(luma(c)), c, s);
-}
-
-// Vibrance — boosts less-saturated colours more (avoids clipping already-vivid ones)
-vec3 vibrance(vec3 c, float v){
-  float sat = max(c.r, max(c.g, c.b)) - min(c.r, min(c.g, c.b));
-  return mix(c, saturate(c, 1.0 + v), (1.0 - sat));
-}
-
-// S-curve contrast around midpoint 0.5
-vec3 contrast(vec3 c, float amt){
-  return clamp((c - 0.5) * amt + 0.5, 0.0, 1.0);
-}
-
-void main(){
-  vec3 N = normalize(vN);
-  vec3 V = normalize(uCam - vW);
-  if (dot(N, V) < 0.0) N = -N;
-
-  vec4 base = (uHT == 1) ? texture(uTex, vU) : uCol;
-  if (base.a < 0.01) discard;
-
-  // ── Texture colour enrichment ──────────────────────────────────
-  vec3 rich = base.rgb;
-  rich = vibrance(rich, uVibrance);
-  rich = saturate(rich, uSaturation);
-  rich = contrast(rich, uContrast);
-  rich *= uTone;
-
-  // ── Lighting ──────────────────────────────────────────────────
-  float d1 = max(dot(N, uL1Dir), 0.0);
-  float d2 = max(dot(N, uL2Dir), 0.0);
-  float d3 = max(dot(N, uL3Dir), 0.0);
-  float sp = pow(max(dot(reflect(-uL1Dir, N), V), 0.0), 64.0) * 0.6;
-
-  vec3 col = rich * (uAmb + d1*uL1Col + d2*uL2Col + d3*uL3Col) + sp;
-
-  // ── Tonemapping + gamma ────────────────────────────────────────
-  col = aces(col * 0.90);
-  col = pow(max(col, 0.0), vec3(1.0/2.2));
-  fragColor = vec4(col, base.a);
-}`;
-
-function mkShader(t, src) {
-  const s = gl.createShader(t);
-  gl.shaderSource(s, src);
-  gl.compileShader(s);
-  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS))
-    throw new Error(gl.getShaderInfoLog(s));
-  return s;
-}
-function buildProg(vs, fs) {
-  const p = gl.createProgram();
-  gl.attachShader(p, mkShader(gl.VERTEX_SHADER,   vs));
-  gl.attachShader(p, mkShader(gl.FRAGMENT_SHADER, fs));
-  gl.linkProgram(p);
-  if (!gl.getProgramParameter(p, gl.LINK_STATUS))
-    throw new Error(gl.getProgramInfoLog(p));
-  return p;
-}
-function cacheU() {
-  for (const n of ['uMVP','uM','uNM','uCam','uCol','uTex','uHT',
-                   'uL1Dir','uL1Col','uL2Dir','uL2Col','uL3Dir','uL3Col','uAmb',
-                   'uVibrance','uSaturation','uContrast','uTone'])
-    U[n] = gl.getUniformLocation(PROG, n);
-}
-
-// 3-point product photography lighting: key (front-right), fill (front-left), rim (back-top)
-const LIGHTS_VIEW = [
-  { dir: [ 0.60, -0.20, -0.78], col: [1.20, 1.18, 1.15] },  // KEY  — front-right, low
-  { dir: [-0.60,  0.20, -0.76], col: [1.00, 1.00, 1.05] },  // FILL — front-left, slight up
-  { dir: [ 0.05,  0.50,  0.86], col: [0.80, 0.82, 0.85] },  // BACK — behind+above, rim
-];
-
-// Scalar power multipliers — driven by the light panel sliders
-const LIGHT_POWER          = { key: 0.30, fill: 0.05, back: 1.00, amb: 0.20 };
-const LIGHT_POWER_DEFAULTS = { key: 0.30, fill: 0.05, back: 1.00, amb: 0.20 };
-const LIGHT_KEYS = ['key', 'fill', 'back'];
-
-function uploadLights() {
-  const eye = camEye();
-  let fx=eye[0]-CAM.tx, fy=eye[1]-CAM.ty, fz=eye[2]-CAM.tz;
-  const fl=Math.hypot(fx,fy,fz)||1; fx/=fl; fy/=fl; fz/=fl;
-  let rx=fz, ry=0, rz=-fx;
-  const rl=Math.hypot(rx,ry,rz)||1; rx/=rl; ry/=rl; rz/=rl;
-  const ux=fy*rz-fz*ry, uy=fz*rx-fx*rz, uz=fx*ry-fy*rx;
-
-  LIGHTS_VIEW.forEach(({ dir:[vx,vy,vz], col }, i) => {
-    let wx=vx*rx+vy*ux-vz*fx, wy=vx*ry+vy*uy-vz*fy, wz=vx*rz+vy*uz-vz*fz;
-    const wl=Math.hypot(wx,wy,wz)||1;
-    const p = LIGHT_POWER[LIGHT_KEYS[i]];
-    gl.uniform3fv(U[`uL${i+1}Dir`], new Float32Array([wx/wl, wy/wl, wz/wl]));
-    gl.uniform3fv(U[`uL${i+1}Col`], new Float32Array(col.map(v => v * p)));
-  });
-  const a = LIGHT_POWER.amb;
-  gl.uniform3fv(U.uAmb, new Float32Array([a, a, a]));
-}
-
-// ── MATH (column-major, matches WebGL + GLTF spec) ───────────────
-// WebGL matrices are column-major: index = col*4 + row
-// m[0..3]  = column 0, m[4..7] = column 1, etc.
-
-function id4() {
-  return new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]);
-}
-
-// Column-major 4x4 multiply: result = a * b
-function mul4(a, b) {
-  const o = new Float32Array(16);
-  for (let col = 0; col < 4; col++)
-    for (let row = 0; row < 4; row++) {
-      let s = 0;
-      for (let k = 0; k < 4; k++) s += a[k*4+row] * b[col*4+k];
-      o[col*4+row] = s;
-    }
-  return o;
-}
-
-function perspective(fov, asp, n, f) {
-  const t = Math.tan(fov * 0.5);
-  // Column-major perspective matrix
-  return new Float32Array([
-    1/(asp*t), 0,        0,                    0,
-    0,         1/t,      0,                    0,
-    0,         0,        -(f+n)/(f-n),        -1,
-    0,         0,        -2*f*n/(f-n),         0
-  ]);
-}
-
-function lookAt(eye, at) {
-  let fx=eye[0]-at[0], fy=eye[1]-at[1], fz=eye[2]-at[2];
-  let fl=Math.hypot(fx,fy,fz)||1; fx/=fl; fy/=fl; fz/=fl;
-  let rx=fz, ry=0, rz=-fx;
-  let rl=Math.hypot(rx,ry,rz)||1; rx/=rl; ry/=rl; rz/=rl;
-  const ux=fy*rz-fz*ry, uy=fz*rx-fx*rz, uz=fx*ry-fy*rx;
-  return new Float32Array([
-     rx,  ux,  fx, 0,
-     ry,  uy,  fy, 0,
-     rz,  uz,  fz, 0,
-    -(rx*eye[0]+ry*eye[1]+rz*eye[2]),
-    -(ux*eye[0]+uy*eye[1]+uz*eye[2]),
-    -(fx*eye[0]+fy*eye[1]+fz*eye[2]), 1
-  ]);
-}
-
-function trs(T, r, S) {
-  const [qx,qy,qz,qw]=r, [sx,sy,sz]=S;
-  const r00=1-2*(qy*qy+qz*qz), r10=2*(qx*qy+qw*qz), r20=2*(qx*qz-qw*qy);
-  const r01=2*(qx*qy-qw*qz),   r11=1-2*(qx*qx+qz*qz), r21=2*(qy*qz+qw*qx);
-  const r02=2*(qx*qz+qw*qy),   r12=2*(qy*qz-qw*qx),   r22=1-2*(qx*qx+qy*qy);
-  return new Float32Array([
-    r00*sx, r10*sx, r20*sx, 0,
-    r01*sy, r11*sy, r21*sy, 0,
-    r02*sz, r12*sz, r22*sz, 0,
-    T[0],   T[1],   T[2],   1
-  ]);
-}
-
-function normMat3(m) {
-  // inverse-transpose of upper-left 3x3 (column-major: cols are m[0..2], m[4..6], m[8..10])
-  const a=m[0],b=m[1],c=m[2];
-  const d=m[4],e=m[5],f=m[6];
-  const g=m[8],h=m[9],k=m[10];
-  const det=a*(e*k-f*h)-d*(b*k-c*h)+g*(b*f-c*e);
-  const inv=det?1/det:1;
-  return new Float32Array([
-     (e*k-f*h)*inv, -(b*k-c*h)*inv,  (b*f-c*e)*inv,
-    -(d*k-f*g)*inv,  (a*k-c*g)*inv, -(a*f-c*d)*inv,
-     (d*h-e*g)*inv, -(a*h-b*g)*inv,  (a*e-b*d)*inv
-  ]);
-}
-
-// ── CAMERA ───────────────────────────────────────────────────────
-const CAM = { az: 1.1345, el: -0.0873, r: 1.6, tx: 0, ty: 0, tz: 0 };
-let DEF_R = 1.6;
-// Saved default position — set when model loads, restored on reset
-let CAM_DEFAULT = { az: 1.1345, el: -0.0873, r: 1.6, tx: 0, ty: 0, tz: 0 };
-
-function camEye() {
+function updateCamera() {
   const ce = Math.cos(CAM.el), se = Math.sin(CAM.el);
   const ca = Math.cos(CAM.az), sa = Math.sin(CAM.az);
-  return [CAM.tx + CAM.r*ca*ce, CAM.ty + CAM.r*se, CAM.tz + CAM.r*sa*ce];
+  camera.position.set(
+    CAM.tx + CAM.r * ca * ce,
+    CAM.ty + CAM.r * se,
+    CAM.tz + CAM.r * sa * ce
+  );
+  camera.lookAt(CAM.tx, CAM.ty, CAM.tz);
+  needsRender = true;
 }
 
-function mvp(world) {
-  const eye = camEye();
-  const V = lookAt(eye, [CAM.tx, CAM.ty, CAM.tz]);
-  const P = perspective(Math.PI/4, canvas.width/canvas.height, 0.01, 100);
-  return mul4(mul4(P, V), world);
+// ── RESIZE ───────────────────────────────────────────────────────
+function resize() {
+  const w = viewEl.clientWidth, h = viewEl.clientHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / Math.max(h, 1);
+  camera.updateProjectionMatrix();
+  fitCamera();
+  updateCamera();
 }
+window.addEventListener('resize', resize);
 
-// ── INPUT ────────────────────────────────────────────────────────
-let drag = { on:false, btn:0, x:0, y:0 };
-canvas.addEventListener('mousedown', e => {
-  drag = { on:true, btn:e.button, x:e.clientX, y:e.clientY };
+// ── RENDER LOOP ──────────────────────────────────────────────────
+let needsRender = true;
+let renderUntil = 0;
+const markDirty    = ()   => { needsRender = true; };
+const markDirtyFor = (ms) => { renderUntil = Date.now() + ms; needsRender = true; };
+
+function raf() {
+  requestAnimationFrame(raf);
+  if (Date.now() < renderUntil) needsRender = true;
+  if (!needsRender) return;
+  needsRender = false;
+  updateCamera();
+  renderer.render(scene, camera);
+}
+raf();
+
+// ── INPUT ─────────────────────────────────────────────────────────
+let drag = { on: false, btn: 0, x: 0, y: 0 };
+const canvasEl = $('c');
+
+canvasEl.addEventListener('mousedown', e => {
+  drag = { on: true, btn: e.button, x: e.clientX, y: e.clientY };
   e.preventDefault();
 });
-window.addEventListener('mouseup',   () => drag.on = false);
+window.addEventListener('mouseup', () => drag.on = false);
 window.addEventListener('mousemove', e => {
   if (!drag.on) return;
   const dx = (e.clientX - drag.x) * 0.013;
@@ -791,34 +657,33 @@ window.addEventListener('mousemove', e => {
   drag.x = e.clientX; drag.y = e.clientY;
   if (drag.btn === 0) {
     CAM.az += dx;
-    CAM.el  = Math.max(-1.45, Math.min(1.45, CAM.el + dy));
+    CAM.el = Math.max(-1.45, Math.min(1.45, CAM.el + dy));
   } else if (drag.btn === 2) {
     const s = CAM.r * 0.75;
     CAM.tx -= Math.cos(CAM.az) * dx * s;
     CAM.tz -= Math.sin(CAM.az) * dx * s;
     CAM.ty += dy * s;
   }
+  markDirty();
 });
-canvas.addEventListener('wheel', e => {
-  const asp   = canvas.width / canvas.height;
-  const tanH  = Math.tan(Math.PI / 8) * 0.90; // tan(fov/2) * margin
-  const MIN_R = Math.max(0.5 / tanH, 0.5 / (tanH * asp));
-  const MAX_R = DEF_R * 4;
+canvasEl.addEventListener('wheel', e => {
+  const asp = viewEl.clientWidth / Math.max(viewEl.clientHeight, 1);
+  const MIN_R = DEF_R * 0.35, MAX_R = DEF_R * 4;
   CAM.r = Math.min(MAX_R, Math.max(MIN_R, CAM.r * (1 + e.deltaY * 0.001)));
   e.preventDefault();
+  markDirty();
 }, { passive: false });
-canvas.addEventListener('contextmenu', e => e.preventDefault());
-canvas.addEventListener('dblclick', () => { Object.assign(CAM, CAM_DEFAULT); });
+canvasEl.addEventListener('contextmenu', e => e.preventDefault());
+canvasEl.addEventListener('dblclick', () => { Object.assign(CAM, CAM_DEFAULT); markDirty(); });
 
-// ── TOUCH ────────────────────────────────────────────────────────
+// Touch
 let touches = {};
-canvas.addEventListener('touchstart', e => {
+canvasEl.addEventListener('touchstart', e => {
   e.preventDefault();
   touches = {};
   for (const t of e.touches) touches[t.identifier] = { x: t.clientX, y: t.clientY };
 }, { passive: false });
-
-canvas.addEventListener('touchmove', e => {
+canvasEl.addEventListener('touchmove', e => {
   e.preventDefault();
   const pts = e.touches;
   if (pts.length === 1) {
@@ -833,617 +698,147 @@ canvas.addEventListener('touchmove', e => {
     const a = pts[0], b = pts[1];
     const pa = touches[a.identifier], pb = touches[b.identifier];
     if (!pa || !pb) return;
-    const prevDist = Math.hypot(pa.x - pb.x, pa.y - pb.y);
-    const curDist  = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
-    const scale = prevDist / (curDist || 1);
-    const MIN_R = DEF_R * 0.35, MAX_R = DEF_R * 4;
-    CAM.r = Math.min(MAX_R, Math.max(MIN_R, CAM.r * scale));
+    const prev = Math.hypot(pa.x - pb.x, pa.y - pb.y);
+    const cur  = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+    CAM.r = Math.min(DEF_R * 4, Math.max(DEF_R * 0.35, CAM.r * (prev / (cur || 1))));
     markDirty();
   }
   for (const t of pts) touches[t.identifier] = { x: t.clientX, y: t.clientY };
 }, { passive: false });
-
-canvas.addEventListener('touchend', e => {
+canvasEl.addEventListener('touchend', e => {
   for (const t of e.changedTouches) delete touches[t.identifier];
 }, { passive: false });
 
-// ── GLB PARSE ────────────────────────────────────────────────────
-function parseGLB(ab) {
-  const dv = new DataView(ab);
-  if (dv.getUint32(0, true) !== 0x46546C67)
-    throw new Error('Not a GLB — bad magic bytes');
+// ── GLB LOADER ───────────────────────────────────────────────────
+let currentObject = null;
 
-  let off = 12, jsonData = null, binData = null;
-  while (off + 8 <= ab.byteLength) {
-    const len  = dv.getUint32(off,   true);
-    const type = dv.getUint32(off+4, true);
-    off += 8;
-    if (off + len > ab.byteLength) break;
-    if (type === 0x4E4F534A && !jsonData)
-      jsonData = new Uint8Array(ab, off, len);
-    if (type === 0x004E4942 && !binData)
-      binData = ab.slice(off, off + len);
-    off += (len + 3) & ~3;
-  }
-
-  if (!jsonData) throw new Error('GLB has no JSON chunk');
-  const gltf = JSON.parse(new TextDecoder().decode(jsonData));
-  const bin  = binData || new ArrayBuffer(0);
-
-  // Build buffer list — GLB bin is always buffer[0]
-  const buffers = (gltf.buffers || [{ byteLength: bin.byteLength }]).map((_, i) =>
-    i === 0 ? bin : new ArrayBuffer(0)
-  );
-
-  return { gltf, buffers };
+// Minimal GLB / GLTF loader using Three.js GLTFLoader from CDN
+function loadGLBBytes(arrayBuffer, name, modelId) {
+  ovOn(); setP(10); setT('PARSING…');
+  $('empty').style.display = 'none';
+  _doLoad(arrayBuffer, name, modelId);
 }
 
-// ── ACCESSOR — handles ALL stride/offset/type combos correctly ───
-function readAccessor(gltf, buffers, accIdx) {
-  const acc  = gltf.accessors[accIdx];
-  const bv   = gltf.bufferViews[acc.bufferView];
-  const raw  = buffers[bv.buffer || 0];
+function _doLoad(arrayBuffer, name, modelId) {
+  setP(30); setT('LOADING MODEL…');
+  const loader = new THREE.GLTFLoader();
+  // Copy buffer to ensure it's not detached
+  const buf = arrayBuffer.slice(0);
+  loader.parse(buf, window.location.href, gltf => {
+    setP(80); setT('BUILDING SCENE…');
 
-  const ELEM = { SCALAR:1, VEC2:2, VEC3:3, VEC4:4, MAT2:4, MAT3:9, MAT4:16 };
-  const nElem = ELEM[acc.type] || 1;
-  const cType = acc.componentType;  // 5120=i8 5121=u8 5122=i16 5123=u16 5125=u32 5126=f32
-  const cSize = { 5120:1, 5121:1, 5122:2, 5123:2, 5125:4, 5126:4 }[cType] || 4;
+    // Remove previous model
+    if (currentObject) { scene.remove(currentObject); currentObject = null; }
 
-  const bvOffset  = bv.byteOffset  || 0;
-  const accOffset = acc.byteOffset || 0;
-  const stride    = bv.byteStride  || (nElem * cSize);
+    const obj = gltf.scene;
 
-  // Always copy out to a fresh Float32Array — avoids SharedArrayBuffer/offset issues
-  const out = new Float32Array(acc.count * nElem);
-  const dv  = new DataView(raw);
-
-  for (let i = 0; i < acc.count; i++) {
-    // GLTF spec: element i starts at bufferView.byteOffset + accessor.byteOffset + i * effectiveStride
-    const start = bvOffset + i * stride + accOffset;
-    for (let j = 0; j < nElem; j++) {
-      const bytePos = start + j * cSize;
-      let v = 0;
-      switch (cType) {
-        case 5126: v = dv.getFloat32(bytePos, true); break;
-        case 5125: v = dv.getUint32(bytePos,  true); break;
-        case 5123: v = dv.getUint16(bytePos,  true); break;
-        case 5122: v = dv.getInt16(bytePos,   true); break;
-        case 5121: v = dv.getUint8(bytePos);         break;
-        case 5120: v = dv.getInt8(bytePos);          break;
+    // Fix encoding on all materials
+    obj.traverse(node => {
+      if (node.isMesh) {
+        const mats = Array.isArray(node.material) ? node.material : [node.material];
+        mats.forEach(m => {
+          if (m.map) m.map.encoding = THREE.sRGBEncoding;
+          if (m.emissiveMap) m.emissiveMap.encoding = THREE.sRGBEncoding;
+          m.needsUpdate = true;
+        });
       }
-      out[i * nElem + j] = v;
-    }
-  }
-  return out;
-}
+    });
 
-function readIndices(gltf, buffers, accIdx) {
-  const acc = gltf.accessors[accIdx];
-  const bv  = gltf.bufferViews[acc.bufferView];
-  const raw = buffers[bv.buffer || 0];
-  const off = (bv.byteOffset || 0) + (acc.byteOffset || 0);
-  const n   = acc.count;
-  const dv  = new DataView(raw);
-  const out = new Uint32Array(n);
-  for (let i = 0; i < n; i++) {
-    switch (acc.componentType) {
-      case 5125: out[i] = dv.getUint32(off + i*4, true); break;
-      case 5123: out[i] = dv.getUint16(off + i*2, true); break;
-      case 5121: out[i] = dv.getUint8(off + i);          break;
-    }
-  }
-  return out;
-}
+    // Normalize: fit into unit box centered at origin
+    const box = new THREE.Box3().setFromObject(obj);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const scale = 1.0 / maxDim;
+    obj.scale.setScalar(scale);
+    obj.position.sub(center.multiplyScalar(scale));
 
-// ── SMOOTH NORMALS (angle-weighted) ─────────────────────────────
-function calcNormals(pos, idx) {
-  const nv  = pos.length / 3;
-  const out = new Float32Array(nv * 3);
-  const cnt = idx ? idx.length / 3 : nv / 3;
-  for (let t = 0; t < cnt; t++) {
-    const i0 = idx ? idx[t*3]   : t*3;
-    const i1 = idx ? idx[t*3+1] : t*3+1;
-    const i2 = idx ? idx[t*3+2] : t*3+2;
-    const ax=pos[i0*3], ay=pos[i0*3+1], az=pos[i0*3+2];
-    const bx=pos[i1*3], by=pos[i1*3+1], bz=pos[i1*3+2];
-    const cx=pos[i2*3], cy=pos[i2*3+1], cz=pos[i2*3+2];
-    const ex=bx-ax, ey=by-ay, ez=bz-az;
-    const fx=cx-ax, fy=cy-ay, fz=cz-az;
-    const nx=ey*fz-ez*fy, ny=ez*fx-ex*fz, nz=ex*fy-ey*fx;
-    for (const i of [i0,i1,i2]) {
-      out[i*3]+=nx; out[i*3+1]+=ny; out[i*3+2]+=nz;
-    }
-  }
-  for (let i = 0; i < nv; i++) {
-    const l = Math.hypot(out[i*3], out[i*3+1], out[i*3+2]) || 1;
-    out[i*3]/=l; out[i*3+1]/=l; out[i*3+2]/=l;
-  }
-  return out;
-}
+    scene.add(obj);
+    currentObject = obj;
 
-// ── SCENE GRAPH ──────────────────────────────────────────────────
-let MESHES = [];
+    // Count triangles
+    let tris = 0;
+    obj.traverse(n => { if (n.isMesh) tris += (n.geometry.index ? n.geometry.index.count : n.geometry.attributes.position.count) / 3; });
+    tris = Math.round(tris);
 
-function buildScene(gltf, buffers) {
-  MESHES = [];
+    // Apply environment
+    applyEnv();
+    updateLights();
 
-  // Collect root nodes
-  const si   = gltf.scene ?? 0;
-  const roots = gltf.scenes?.[si]?.nodes
-    ?? (gltf.nodes ? gltf.nodes.map((_,i)=>i) : []);
+    setP(100);
+    setTimeout(() => {
+      ovOff();
+      showInfo(name, tris);
+      markDirtyFor(3000);
+      setTimeout(() => captureThumb(modelId), 400);
+    }, 200);
 
-  const nodeM = n => {
-    if (n.matrix) return new Float32Array(n.matrix);
-    return trs(
-      n.translation || [0,0,0],
-      n.rotation    || [0,0,0,1],
-      n.scale       || [1,1,1]
-    );
-  };
+    // Reset camera
+    fitCamera();
+    CAM.az = 1.1345; CAM.el = -0.0873;
+    CAM.tx = 0; CAM.ty = 0; CAM.tz = 0;
+    Object.assign(CAM_DEFAULT, CAM);
 
-  const walk = (ni, parent) => {
-    const n = gltf.nodes[ni];
-    const world = mul4(parent, nodeM(n));
-    if (n.mesh != null) {
-      for (const p of gltf.meshes[n.mesh].primitives)
-        addPrim(p, gltf, buffers, world);
-    }
-    (n.children || []).forEach(c => walk(c, world));
-  };
-  roots.forEach(r => walk(r, id4()));
-
-  // ── AABB & normalise ─────────────────────────────────────────
-  let mn = [+1e9,+1e9,+1e9], mx = [-1e9,-1e9,-1e9];
-  for (const m of MESHES) {
-    const p = m.pos, w = m.wm;
-    for (let i = 0; i < p.length; i += 3) {
-      // Column-major: col0=w[0..3], col1=w[4..7], col2=w[8..11], col3=w[12..15]
-      // pos_world = col0*px + col1*py + col2*pz + col3
-      const wx = w[0]*p[i]+w[4]*p[i+1]+w[8] *p[i+2]+w[12];
-      const wy = w[1]*p[i]+w[5]*p[i+1]+w[9] *p[i+2]+w[13];
-      const wz = w[2]*p[i]+w[6]*p[i+1]+w[10]*p[i+2]+w[14];
-      if(wx<mn[0])mn[0]=wx; if(wx>mx[0])mx[0]=wx;
-      if(wy<mn[1])mn[1]=wy; if(wy>mx[1])mx[1]=wy;
-      if(wz<mn[2])mn[2]=wz; if(wz>mx[2])mx[2]=wz;
-    }
-  }
-  if (!isFinite(mn[0])) { mn=[0,0,0]; mx=[1,1,1]; }
-
-  const cx=(mn[0]+mx[0])/2, cy=(mn[1]+mx[1])/2, cz=(mn[2]+mx[2])/2;
-  const sz = Math.max(mx[0]-mn[0], mx[1]-mn[1], mx[2]-mn[2]) || 1;
-  // Normalize: largest dimension becomes 1.0 unit
-  const sc = 1.0 / sz;
-
-  // After normalization model fits in a 1x1x1 box.
-  // FOV=45deg, so tan(22.5deg)≈0.414. To see 0.5 units half-size: dist = 0.5/0.414 = 1.207
-  // Multiply by 1.6 for comfortable framing with margin.
-  fitCamera();
-  CAM.az=1.1345; CAM.el=-0.0873;
-  CAM.tx=0; CAM.ty=0; CAM.tz=0;
-
-  // Save as default position — reset button restores this exact state
-  Object.assign(CAM_DEFAULT, { az: CAM.az, el: CAM.el, r: CAM.r, tx: CAM.tx, ty: CAM.ty, tz: CAM.tz });
-
-  // Normalisation: Scale(T(p)) — first translate to center, then scale
-  // Column-major translation: translation is in column 3 = indices [12,13,14]
-  const Tm = id4(); Tm[12]=-cx; Tm[13]=-cy; Tm[14]=-cz;
-  const Sm = id4(); Sm[0]=sc; Sm[5]=sc; Sm[10]=sc;
-  // NM = Sm * Tm  (scale after translate in world space)
-  const NM = mul4(Sm, Tm);
-
-  let totalTri = 0;
-  for (const m of MESHES) {
-    m.wm = mul4(NM, m.wm);
-    uploadGPU(m);
-    totalTri += m.idx ? m.idx.length/3 : m.pos.length/9;
-  }
-  return Math.round(totalTri);
-}
-
-function addPrim(prim, gltf, buffers, wm) {
-  const at = prim.attributes || {};
-  if (at.POSITION == null) return;
-
-  // Read all attributes using the stride-aware reader
-  const pos  = readAccessor(gltf, buffers, at.POSITION);
-  const idx  = prim.indices != null ? readIndices(gltf, buffers, prim.indices) : null;
-  const norm = at.NORMAL != null
-    ? readAccessor(gltf, buffers, at.NORMAL)
-    : calcNormals(pos, idx);
-  const uv   = at.TEXCOORD_0 != null
-    ? readAccessor(gltf, buffers, at.TEXCOORD_0)
-    : new Float32Array(pos.length / 3 * 2);
-
-  // Material
-  let col = [0.72, 0.72, 0.72, 1.0];
-  let texBlobKey = null;
-  let texBlob = null;
-  let texMime = 'image/png';
-
-  if (prim.material != null) {
-    const mat = gltf.materials?.[prim.material];
-    const pbr = mat?.pbrMetallicRoughness || {};
-    if (pbr.baseColorFactor) col = [...pbr.baseColorFactor];
-    const bct = pbr.baseColorTexture;
-    if (bct != null) {
-      const texIdx = bct.index;
-      const texDef = gltf.textures?.[texIdx];
-      const srcIdx = texDef?.source;
-      if (srcIdx != null) {
-        const imgDef = gltf.images?.[srcIdx];
-        if (imgDef?.bufferView != null) {
-          const bv  = gltf.bufferViews[imgDef.bufferView];
-          const buf = buffers[bv.buffer || 0];
-          const off = bv.byteOffset || 0;
-          texBlob    = new Uint8Array(buf.slice(off, off + bv.byteLength));
-          texBlobKey = String(srcIdx);
-          // Detect MIME from magic bytes
-          if      (texBlob[0]===0xFF && texBlob[1]===0xD8) texMime = 'image/jpeg';
-          else if (texBlob[0]===0x89 && texBlob[1]===0x50) texMime = 'image/png';
-          else if (texBlob[0]===0x52 && texBlob[1]===0x49) texMime = 'image/webp';
-          else    texMime = imgDef.mimeType || 'image/png';
-        } else if (imgDef?.uri) {
-          console.warn('External URI textures not supported:', imgDef.uri);
-        } else {
-          console.warn('Image has no bufferView, srcIdx='+srcIdx, imgDef);
-        }
-      } else {
-        console.warn('Texture has no source, texIdx='+texIdx, texDef);
-      }
-    }
-  }
-
-  MESHES.push({ pos, norm, uv, idx, col, texBlob, texBlobKey, texMime, wm,
-                vao:null, ibo:null, cnt:0, idxType:0, glTex:null });
-}
-
-// ── GPU UPLOAD ───────────────────────────────────────────────────
-// texBlobKey is the gltf image index (integer). Use String() so 0 works as key.
-const TEX_CACHE = new Map(); // String(imageIndex) -> WebGLTexture
-
-function vbuf(data, loc, size) {
-  if (loc < 0) return;
-  const b = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, b);
-  gl.bufferData(gl.ARRAY_BUFFER, data instanceof Float32Array ? data : new Float32Array(data), gl.STATIC_DRAW);
-  gl.enableVertexAttribArray(loc);
-  gl.vertexAttribPointer(loc, size, gl.FLOAT, false, 0, 0);
-}
-
-function uploadTexToGL(source) {
-  const tex = gl.createTexture();
-  gl.bindTexture(gl.TEXTURE_2D, tex);
-  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
-  gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
-
-  // Upload at full resolution
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
-  gl.generateMipmap(gl.TEXTURE_2D);
-
-  // High quality filtering
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
-
-  // Anisotropic filtering — up to 16x if GPU supports it
-  const ext = gl.getExtension('EXT_texture_filter_anisotropic')
-           || gl.getExtension('MOZ_EXT_texture_filter_anisotropic')
-           || gl.getExtension('WEBKIT_EXT_texture_filter_anisotropic');
-  if (ext) {
-    const max = gl.getParameter(ext.MAX_TEXTURE_MAX_ANISOTROPY_EXT);
-    gl.texParameterf(gl.TEXTURE_2D, ext.TEXTURE_MAX_ANISOTROPY_EXT, Math.min(16, max));
-  }
-
-  return tex;
-}
-
-function decodeAndUpload(blob, mime) {
-  return new Promise((resolve, reject) => {
-    const tryBitmap = () =>
-      createImageBitmap(new Blob([blob], { type: mime }), { colorSpaceConversion: 'none', premultiplyAlpha: 'none' })
-        .then(bmp => { const t = uploadTexToGL(bmp); bmp.close(); resolve(t); })
-        .catch(tryCanvas);
-
-    const tryCanvas = () => {
-      const url = URL.createObjectURL(new Blob([blob], { type: mime }));
-      const img = new Image();
-      img.onload = () => {
-        URL.revokeObjectURL(url);
-        const cv = document.createElement('canvas');
-        cv.width  = img.naturalWidth  || img.width;
-        cv.height = img.naturalHeight || img.height;
-        cv.getContext('2d').drawImage(img, 0, 0);
-        resolve(uploadTexToGL(cv));
-      };
-      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('tex failed: ' + mime)); };
-      img.src = url;
-    };
-
-    if (typeof createImageBitmap !== 'undefined') tryBitmap();
-    else tryCanvas();
+  }, err => {
+    console.error(err);
+    ovOff();
+    $('empty').style.display = 'flex';
+    alert('Error loading model:\n' + (err.message || err));
   });
 }
 
-function assignTexture(key, blob, mime) {
-  // If already cached as a resolved texture, assign immediately
-  if (TEX_CACHE.has(key)) {
-    const v = TEX_CACHE.get(key);
-    if (v instanceof WebGLTexture) {
-      MESHES.forEach(m => { if (m.texBlobKey === key) m.glTex = v; });
-    }
-    // if still a Promise, the .then below will handle it
-    return;
-  }
-  // Start decoding, cache the Promise immediately to prevent duplicate decodes
-  const p = decodeAndUpload(blob, mime)
-    .then(tex => {
-      TEX_CACHE.set(key, tex);
-      MESHES.forEach(m => { if (m.texBlobKey === key) m.glTex = tex; });
-      return tex;
-    })
-    .catch(err => {
-      console.warn('Texture decode failed, key:', key, 'mime:', mime, err.message);
-      TEX_CACHE.delete(key);
+// ── LIGHT PANEL ──────────────────────────────────────────────────
+function updateLights() {
+  lights.key.intensity  = LIGHT_POWER.key;
+  lights.fill.intensity = LIGHT_POWER.fill;
+  lights.back.intensity = LIGHT_POWER.back;
+  lights.amb.intensity  = LIGHT_POWER.amb;
+  markDirty();
+}
+
+// ── COLOR GRADING ─────────────────────────────────────────────────
+// Three.js handles tonemapping; we apply post-process via CSS filter on canvas
+const GRADE = { vibrance: 0.48, saturation: 0.92, contrast: 1.20, warm: 1.00, tint: 1.00, cool: 1.00 };
+const GRADE_DEFAULTS = { ...GRADE };
+const HDRI = { enabled: 1.0, roughness: 0.5 };
+
+function applyGrading() {
+  // Map to CSS filter
+  const sat  = GRADE.saturation;
+  const con  = GRADE.contrast;
+  const warm = GRADE.warm;
+  const cool = GRADE.cool;
+  // Brightness from tone multiplier
+  const brightness = (warm + GRADE.tint + cool) / 3;
+  canvasEl.style.filter = [
+    `saturate(${sat})`,
+    `contrast(${con})`,
+    `brightness(${brightness.toFixed(3)})`
+  ].join(' ');
+  // HDRI exposure via tone mapping
+  renderer.toneMappingExposure = Math.max(0.01, HDRI.enabled);
+  // Roughness: update all materials
+  if (currentObject) {
+    currentObject.traverse(node => {
+      if (node.isMesh) {
+        const mats = Array.isArray(node.material) ? node.material : [node.material];
+        mats.forEach(m => {
+          if (m.roughness !== undefined) {
+            m.roughness = Math.max(0.05, Math.min(1.0, HDRI.roughness));
+            m.needsUpdate = true;
+          }
+        });
+      }
     });
-  TEX_CACHE.set(key, p);
-}
-
-function uploadGPU(m) {
-  m.vao = gl.createVertexArray();
-  gl.bindVertexArray(m.vao);
-
-  vbuf(m.pos,  gl.getAttribLocation(PROG,'aP'), 3);
-  vbuf(m.norm, gl.getAttribLocation(PROG,'aN'), 3);
-  vbuf(m.uv,   gl.getAttribLocation(PROG,'aU'), 2);
-
-  if (m.idx && m.idx.length > 0) {
-    m.ibo = gl.createBuffer();
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, m.ibo);
-    const idxData = m.idx.some(v => v > 65535) ? new Uint32Array(m.idx) : new Uint16Array(m.idx);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, idxData, gl.STATIC_DRAW);
-    m.idxType = idxData instanceof Uint32Array ? gl.UNSIGNED_INT : gl.UNSIGNED_SHORT;
-    m.cnt = m.idx.length;
-  } else {
-    m.cnt = m.pos.length / 3;
   }
-  gl.bindVertexArray(null);
-
-  if (m.texBlob && m.texBlobKey !== null) {
-    assignTexture(m.texBlobKey, m.texBlob, m.texMime);
-  }
+  markDirty();
 }
 
-// Creates a VAO with a single 2-component float attrib bound to location 'aP'
-function makeVAO2f(prog, data) {
-  const vao = gl.createVertexArray();
-  gl.bindVertexArray(vao);
-  const buf = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STATIC_DRAW);
-  const loc = gl.getAttribLocation(prog, 'aP');
-  gl.enableVertexAttribArray(loc);
-  gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-  gl.bindVertexArray(null);
-  return vao;
-}
-
-// ── BACKGROUND GRADIENT ──────────────────────────────────────────
-let BG_PROG, BG_VAO, BG_U = {};
-let BG_INNER = [1.0, 1.0, 1.0];
-let BG_OUTER  = [0.84, 0.88, 0.93];
-
-function initBG() {
-  const vs = `#version 300 es
-precision highp float;
-in vec2 aP;
-out vec2 vP;
-void main(){ vP = aP; gl_Position = vec4(aP, 0.0, 1.0); }`;
-
-  const fs = `#version 300 es
-precision highp float;
-in vec2 vP;
-uniform vec3 uInner;
-uniform vec3 uOuter;
-out vec4 o;
-void main(){
-  float d = length(vP);
-  float t = smoothstep(0.0, 1.3, d);
-  o = vec4(mix(uInner, uOuter, t), 1.0);
-}`;
-
-  BG_PROG = gl.createProgram();
-  gl.attachShader(BG_PROG, mkShader(gl.VERTEX_SHADER, vs));
-  gl.attachShader(BG_PROG, mkShader(gl.FRAGMENT_SHADER, fs));
-  gl.linkProgram(BG_PROG);
-  BG_U.inner = gl.getUniformLocation(BG_PROG, 'uInner');
-  BG_U.outer = gl.getUniformLocation(BG_PROG, 'uOuter');
-  BG_VAO = makeVAO2f(BG_PROG, [-1,-1, 1,-1, 1,1, -1,-1, 1,1, -1,1]);
-}
-
-function drawBG() {
-  gl.disable(gl.DEPTH_TEST);
-  gl.useProgram(BG_PROG);
-  gl.uniform3fv(BG_U.inner, new Float32Array(BG_INNER));
-  gl.uniform3fv(BG_U.outer, new Float32Array(BG_OUTER));
-  gl.bindVertexArray(BG_VAO);
-  gl.drawArrays(gl.TRIANGLES, 0, 6);
-  gl.bindVertexArray(null);
-  gl.enable(gl.DEPTH_TEST);
-}
-
-// ── SOFT SHADOW ──────────────────────────────────────────────────
-let SH_PROG, SH_VAO, SH_U = {};
-
-function initShadow() {
-  const vs = `#version 300 es
-precision highp float;
-in vec2 aP;
-uniform vec2 uCenter;   // NDC center of shadow
-uniform vec2 uRadius;   // NDC x/y radius of ellipse
-out vec2 vL;            // local ellipse coords (-1..1)
-void main(){
-  vL = aP;
-  gl_Position = vec4(uCenter + aP * uRadius, 0.0, 1.0);
-}`;
-
-  const fs = `#version 300 es
-precision highp float;
-in vec2 vL;
-uniform float uOpacity;
-out vec4 o;
-void main(){
-  float d = length(vL);
-  if(d > 1.0) discard;
-  // soft falloff: opaque near center, fades to transparent at edge
-  float alpha = (1.0 - smoothstep(0.0, 1.0, d)) * uOpacity;
-  o = vec4(0.0, 0.0, 0.0, alpha);
-}`;
-
-  SH_PROG = gl.createProgram();
-  gl.attachShader(SH_PROG, mkShader(gl.VERTEX_SHADER,   vs));
-  gl.attachShader(SH_PROG, mkShader(gl.FRAGMENT_SHADER, fs));
-  gl.linkProgram(SH_PROG);
-
-  SH_U.center  = gl.getUniformLocation(SH_PROG, 'uCenter');
-  SH_U.radius  = gl.getUniformLocation(SH_PROG, 'uRadius');
-  SH_U.opacity = gl.getUniformLocation(SH_PROG, 'uOpacity');
-
-  const segs = 64;
-  const verts = [0, 0];
-  for (let i = 0; i <= segs; i++) {
-    const a = (i / segs) * Math.PI * 2;
-    verts.push(Math.cos(a), Math.sin(a));
-  }
-  SH_VAO = makeVAO2f(SH_PROG, verts);
-}
-
-function drawShadow() {
-  if (!MESHES.length) return;
-
-  // Project the model's bottom-center into NDC
-  // Model is normalized to ~1 unit, bottom is around y = -0.5 in world space
-  const shadowY  = -0.46;  // closer to model bottom
-  const worldPt  = new Float32Array([0, shadowY, 0, 1]);
-
-  // Transform by VP matrix (no model matrix — shadow is in world space)
-  const eye = camEye();
-  const V   = lookAt(eye, [CAM.tx, CAM.ty, CAM.tz]);
-  const P   = perspective(Math.PI/4, canvas.width/canvas.height, 0.01, 2000);
-  const VP  = mul4(P, V);
-
-  // Manually transform the point
-  const x = VP[0]*worldPt[0]+VP[4]*worldPt[1]+VP[8] *worldPt[2]+VP[12]*worldPt[3];
-  const y = VP[1]*worldPt[0]+VP[5]*worldPt[1]+VP[9] *worldPt[2]+VP[13]*worldPt[3];
-  const w = VP[3]*worldPt[0]+VP[7]*worldPt[1]+VP[11]*worldPt[2]+VP[15]*worldPt[3];
-  if (w <= 0) return;
-
-  const ndcX = x / w;
-  const ndcY = y / w;
-
-  // Shadow ellipse size in NDC — wider than tall for perspective feel
-  const asp   = canvas.width / canvas.height;
-  const radX  = 0.28;
-  const radY  = radX / asp * 0.45;  // flattened ellipse
-
-  gl.enable(gl.DEPTH_TEST);
-  gl.depthMask(false);        // don't write to depth — let model depth win
-  gl.enable(gl.BLEND);
-  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-  gl.useProgram(SH_PROG);
-  gl.bindVertexArray(SH_VAO);
-
-  gl.uniform2fv(SH_U.center,  new Float32Array([ndcX, ndcY]));
-  gl.uniform2fv(SH_U.radius,  new Float32Array([radX, radY]));
-  gl.uniform1f(SH_U.opacity,  0.10);
-
-  gl.drawArrays(gl.TRIANGLE_FAN, 0, 66);
-  gl.bindVertexArray(null);
-  gl.depthMask(true);
-}
-
-// ── SHARED MESH DRAW HELPER ──────────────────────────────────────
-function drawMeshes() {
-  const eye = camEye();
-  gl.uniform3fv(U.uCam, eye);
-  uploadLights();
-  uploadGrading();
-  for (const m of MESHES) {
-    if (!m.vao || m.cnt === 0) continue;
-    gl.bindVertexArray(m.vao);
-    if (m.ibo) gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, m.ibo);
-    gl.uniformMatrix4fv(U.uMVP, false, mvp(m.wm));
-    gl.uniformMatrix4fv(U.uM,   false, m.wm);
-    gl.uniformMatrix3fv(U.uNM,  false, normMat3(m.wm));
-    gl.uniform4fv(U.uCol, m.col);
-    if (m.glTex) {
-      gl.activeTexture(gl.TEXTURE0);
-      gl.bindTexture(gl.TEXTURE_2D, m.glTex);
-      gl.uniform1i(U.uTex, 0);
-      gl.uniform1i(U.uHT,  1);
-    } else {
-      gl.uniform1i(U.uHT, 0);
-    }
-    m.ibo ? gl.drawElements(gl.TRIANGLES, m.cnt, m.idxType, 0)
-          : gl.drawArrays(gl.TRIANGLES, 0, m.cnt);
-    gl.bindVertexArray(null);
-  }
-}
-
-// ── RENDER LOOP ──────────────────────────────────────────────────
-let needsRender = true;
-let renderUntil = 0;
-
-const markDirty    = ()   => { needsRender = true; };
-const markDirtyFor = (ms) => { renderUntil = Date.now() + ms; needsRender = true; };
-
-// Mark dirty on any user interaction
-canvas.addEventListener('mousedown', markDirty);
-canvas.addEventListener('mousemove', e => { if (e.buttons) markDirty(); });
-canvas.addEventListener('wheel', markDirty);
-canvas.addEventListener('mouseup', markDirty);
-
-function raf() {
-  requestAnimationFrame(raf);
-  if (!gl || !PROG) return;
-  if (Date.now() < renderUntil) needsRender = true;
-  if (!needsRender) return;
-  needsRender = false;
-
-  gl.clearColor(1.0, 1.0, 1.0, 1);
-  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-  gl.disable(gl.CULL_FACE);
-  gl.enable(gl.BLEND);
-  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-
-  // Draw gradient background first
-  drawBG();
-
-  if (!MESHES.length) return;
-  gl.enable(gl.DEPTH_TEST);
-  gl.useProgram(PROG);
-
-  // Draw shadow FIRST — depth test ON so model drawn after will cover it
-  drawShadow();
-
-  // Re-bind program after shadow draw
-  gl.useProgram(PROG);
-  drawMeshes();
-}
-
-// ── UI ────────────────────────────────────────────────────────────
-const SLOT_NAMES = ['White', 'Voilet', 'Green', 'Fuschia'];
-const ICONS = ['\uD83D\uDCE6','\uD83C\uDF00','\uD83D\uDD2E','\u2728','\uD83E\uDDCA','\uD83D\uDCA0','\uD83D\uDEF8','\uD83C\uDFAF'];
-const CLRS  = ['#00e5ff','#7c5cfc','#ff6b6b','#ffd166','#06d6a0','#f72585','#4cc9f0','#ff9f1c'];
-// Initialize models array with 4 null slots
-let models = [null, null, null, null];
-let activeId = null;
-
+// ── UI HELPERS ───────────────────────────────────────────────────
 function showInfo(name, tri) {
   const el = $('minfo');
-  el.style.display    = 'block';
-  el.style.animation  = 'none'; void el.offsetWidth; el.style.animation = '';
+  el.style.display = 'block';
+  el.style.animation = 'none'; void el.offsetWidth; el.style.animation = '';
   $('mt').textContent    = name;
   $('ms').textContent    = tri ? tri.toLocaleString() + ' triangles' : 'GLB Asset';
   $('hname').textContent = name.toUpperCase();
@@ -1451,51 +846,32 @@ function showInfo(name, tri) {
 }
 
 function captureThumb(modelId) {
+  if (!currentObject) return;
+  const prevAz = CAM.az, prevEl = CAM.el, prevR = CAM.r;
+  const prevW = renderer.domElement.width, prevH = renderer.domElement.height;
   const TW = 320, TH = 200;
-  const prevW = canvas.width, prevH = canvas.height;
-
-  canvas.width = TW; canvas.height = TH;
-  gl.viewport(0, 0, TW, TH);
-  gl.clearColor(1, 1, 1, 1);
-  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-  gl.disable(gl.CULL_FACE);
-  gl.enable(gl.BLEND);
-  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-  drawBG();
-  gl.enable(gl.DEPTH_TEST);
-  gl.useProgram(PROG);
-
-  // Slightly top-angled isometric-ish camera for thumbnail
-  const savedAz = CAM.az, savedEl = CAM.el, savedR = CAM.r;
+  renderer.setSize(TW, TH, false);
+  camera.aspect = TW / TH;
+  camera.updateProjectionMatrix();
   CAM.az = 0.6; CAM.el = 0.35; CAM.r = DEF_R;
-  drawMeshes();
-
-  const thumb = canvas.toDataURL('image/jpeg', 0.85);
-
-  CAM.az = savedAz; CAM.el = savedEl; CAM.r = savedR;
-  canvas.width = prevW; canvas.height = prevH;
-  gl.viewport(0, 0, prevW, prevH);
+  updateCamera();
+  renderer.render(scene, camera);
+  const thumb = renderer.domElement.toDataURL('image/jpeg', 0.85);
+  CAM.az = prevAz; CAM.el = prevEl; CAM.r = prevR;
+  renderer.setSize(viewEl.clientWidth, viewEl.clientHeight, false);
+  camera.aspect = viewEl.clientWidth / Math.max(viewEl.clientHeight, 1);
+  camera.updateProjectionMatrix();
   markDirty();
-
   const model = models.find(m => m && m.id === modelId);
   if (model) { model.thumb = thumb; renderCards(); }
 }
 
-function closeModel(id) {
-  const idx = models.findIndex(m => m && m.id === id);
-  if (idx >= 0) models[idx] = null;
-  if (activeId === id) {
-    activeId = null;
-    MESHES = [];
-    TEX_CACHE.clear();
-    $('minfo').style.display = 'none';
-    $('hname').textContent = 'NO MODEL LOADED';
-    $('tc').textContent = '-- TRI';
-    $('empty').style.display = 'flex';
-    markDirty();
-  }
-  renderCards();
-}
+// ── MODEL MANAGEMENT ─────────────────────────────────────────────
+const SLOT_NAMES = ['White', 'Voilet', 'Green', 'Fuschia'];
+const ICONS = ['📦','🌀','🔮','✨','🧊','💠','🛸','🎯'];
+const CLRS  = ['#00e5ff','#7c5cfc','#ff6b6b','#ffd166','#06d6a0','#f72585','#4cc9f0','#ff9f1c'];
+let models = [null, null, null, null];
+let activeId = null;
 
 function cardPreview(m, slotIdx) {
   if (!m) return '<span style="font-size:1.1rem">' + (SLOT_NAMES[slotIdx]?.[0] || '○') + '</span>';
@@ -1508,155 +884,119 @@ function renderCards() {
   bar.querySelectorAll('.mc').forEach(c => c.remove());
   const total = Math.max(4, models.length);
   for (let i = 0; i < total; i++) {
-    const m  = models[i] || null;
+    const m = models[i] || null;
     const el = document.createElement('div');
-    el.className = 'mc' + (m?'':' emp') + (m && activeId===m.id?' act':'');
+    el.className = 'mc' + (m ? '' : ' emp') + (m && activeId === m.id ? ' act' : '');
     el.innerHTML =
       '<div class="cdot"></div>' +
       (m ? '<button class="cbtn" title="Remove">X</button>' : '') +
       '<div class="cpv">' + cardPreview(m, i) + '</div>' +
       '<div class="cin">' +
-        '<div class="cnm" style="color:' + (m?'var(--txt)':'var(--mut)') + '">' + (m ? m.name : (SLOT_NAMES[i] || 'Slot '+(i+1))) + '</div>' +
+        '<div class="cnm" style="color:' + (m ? 'var(--txt)' : 'var(--mut)') + '">' + (m ? m.name : (SLOT_NAMES[i] || 'Slot ' + (i + 1))) + '</div>' +
         '<div class="ctp">' + (m ? 'GLB MODEL' : 'EMPTY') + '</div>' +
       '</div>';
     if (m) {
-      el.addEventListener('click', () => select(m));
-      el.querySelector('.cbtn').addEventListener('click', ev => {
-        ev.stopPropagation();
-        closeModel(m.id);
-      });
+      el.addEventListener('click', () => selectModel(m));
+      el.querySelector('.cbtn').addEventListener('click', ev => { ev.stopPropagation(); closeModel(m.id); });
     }
     bar.insertBefore(el, up);
   }
 }
 
-function select(m) {
-  if (!m || (!m.file && !m.arrayBuffer)) return;
+function selectModel(m) {
+  if (!m || !m.arrayBuffer) return;
   activeId = m.id;
   renderCards();
-  if (m.file) {
-    loadGLB(m.file, m.name);
-  } else if (m.arrayBuffer) {
-    loadGLBFromArrayBuffer(m.arrayBuffer, m.name, m.id);
+  loadGLBBytes(m.arrayBuffer, m.name, m.id);
+}
+
+function closeModel(id) {
+  const idx = models.findIndex(m => m && m.id === id);
+  if (idx >= 0) models[idx] = null;
+  if (activeId === id) {
+    activeId = null;
+    if (currentObject) { scene.remove(currentObject); currentObject = null; }
+    $('minfo').style.display = 'none';
+    $('hname').textContent = 'NO MODEL LOADED';
+    $('tc').textContent = '-- TRI';
+    $('empty').style.display = 'flex';
+    markDirty();
   }
+  renderCards();
 }
 
-// ── COLOR GRADING STATE & UPLOAD ─────────────────────────────────
-const GRADE = { vibrance:0.5, saturation:1.1, contrast:1.4, warm:1.04, tint:1.01, cool:0.97 };
-const GRADE_DEFAULTS = { vibrance:0.5, saturation:1.1, contrast:1.4, warm:1.04, tint:1.01, cool:0.97 };
-
-function uploadGrading() {
-  gl.uniform1f(U.uVibrance,    GRADE.vibrance);
-  gl.uniform1f(U.uSaturation,  GRADE.saturation);
-  gl.uniform1f(U.uContrast,    GRADE.contrast);
-  gl.uniform3fv(U.uTone, new Float32Array([GRADE.warm, GRADE.tint, GRADE.cool]));
-}
-
+// ── SNAPSHOT ─────────────────────────────────────────────────────
 function takeSnapshot() {
-  if (!MESHES.length) { alert('No model loaded.'); return; }
-
+  if (!currentObject) { alert('No model loaded.'); return; }
   const btn = $('snap-btn');
   btn.classList.add('capturing');
 
-  // Render one clean frame to main canvas, then copy to offscreen 2D canvas
-  // to strip the background — we use alpha blending trick:
-  // 1. Render model only (no BG) on a transparent offscreen 2D canvas
-  // 2. Read main canvas pixels, replace background color with transparent
-
-  const W = canvas.width, H = canvas.height;
-
-  // Create offscreen canvas same size
+  // Render one clean frame
+  renderer.render(scene, camera);
+  const W = renderer.domElement.width, H = renderer.domElement.height;
   const off = document.createElement('canvas');
   off.width = W; off.height = H;
   const ctx = off.getContext('2d');
+  ctx.drawImage(renderer.domElement, 0, 0);
 
-  // Render BG + model to main canvas (normal frame)
-  gl.clearColor(0, 0, 0, 0);
-  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-  gl.disable(gl.CULL_FACE);
-  gl.enable(gl.BLEND);
-  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-  gl.enable(gl.DEPTH_TEST);
-  gl.useProgram(PROG);
-  drawMeshes();
-
-  // Copy to 2D canvas
-  ctx.drawImage(canvas, 0, 0);
-
-  // Get pixel data and make background transparent
-  // Background color is white/near-white — flood-fill from corners
+  // Remove background
   const imgData = ctx.getImageData(0, 0, W, H);
   const d = imgData.data;
-
-  // Sample bg color from corner
   const bgR = d[0], bgG = d[1], bgB = d[2];
   const thresh = 18;
-
   for (let i = 0; i < d.length; i += 4) {
-    const dr = Math.abs(d[i]   - bgR);
-    const dg = Math.abs(d[i+1] - bgG);
-    const db = Math.abs(d[i+2] - bgB);
-    if (dr < thresh && dg < thresh && db < thresh) {
-      d[i+3] = 0; // make transparent
-    }
+    if (Math.abs(d[i]-bgR) < thresh && Math.abs(d[i+1]-bgG) < thresh && Math.abs(d[i+2]-bgB) < thresh)
+      d[i+3] = 0;
   }
   ctx.putImageData(imgData, 0, 0);
-
   const dataURL = off.toDataURL('image/png');
 
-  // Show preview modal
   $('snap-preview').src = dataURL;
-  $('snap-info').textContent = W + ' \u00d7 ' + H + 'px  \u2022  PNG  \u2022  transparent background';
+  $('snap-info').textContent = W + ' × ' + H + 'px  •  PNG  •  transparent background';
   $('snap-modal').classList.add('show');
-
   const modelName = $('mt').textContent || 'snapshot';
   $('snap-name').value = modelName.toLowerCase().replace(/\s+/g, '-');
-
   $('snap-save').onclick = () => {
     const a = document.createElement('a');
     a.href = dataURL;
     a.download = ($('snap-name').value || 'snapshot') + '.png';
     a.click();
   };
-
   btn.classList.remove('capturing');
-
-  // Restore normal clear color
-  gl.clearColor(1.0, 1.0, 1.0, 1);
-}
-
-function initTheme() {
-  let isDark = false;
-  $('theme-btn').addEventListener('click', () => {
-    isDark = !isDark;
-    document.documentElement.classList.toggle('dark', isDark);
-    BG_INNER = isDark ? [0.10, 0.12, 0.18]   : [1.0,  1.0,  1.0 ];
-    BG_OUTER = isDark ? [0.028, 0.035, 0.055] : [0.84, 0.88, 0.93];
-    markDirty();
-  });
 }
 
 function initSnapshot() {
   $('snap-btn').addEventListener('click', takeSnapshot);
-  $('snap-close').addEventListener('click', () => {
-    $('snap-modal').classList.remove('show');
+  $('snap-close').addEventListener('click', () => $('snap-modal').classList.remove('show'));
+  $('snap-modal').addEventListener('click', e => { if (e.target === $('snap-modal')) $('snap-modal').classList.remove('show'); });
+}
+
+// ── THEME ─────────────────────────────────────────────────────────
+function initTheme() {
+  $('theme-btn').addEventListener('click', () => {
+    isDark = !isDark;
+    document.documentElement.classList.toggle('dark', isDark);
+    BG_COLOR = isDark ? 0x07090e : 0xf0f2f7;
+    scene.background = new THREE.Color(BG_COLOR);
+    markDirty();
   });
-  $('snap-modal').addEventListener('click', e => {
-    if (e.target === $('snap-modal'))
-      $('snap-modal').classList.remove('show');
+}
+
+// ── PANELS ────────────────────────────────────────────────────────
+function closeAllPanels() {
+  [['cam-toggle','cam-panel'],['light-toggle','light-panel'],['grade-toggle','grade-panel']].forEach(([t,p]) => {
+    $(t).classList.remove('open');
+    $(p).classList.remove('open');
   });
 }
 
 function initCamPanel() {
-  const toggle = $('cam-toggle');
-  const panel  = $('cam-panel');
-
+  const toggle = $('cam-toggle'), panel = $('cam-panel');
   toggle.addEventListener('click', () => {
-    const open = panel.classList.toggle('open');
-    toggle.classList.toggle('open', open);
-    if (open) syncCamInputs();
+    const wasOpen = panel.classList.contains('open');
+    closeAllPanels();
+    if (!wasOpen) { panel.classList.add('open'); toggle.classList.add('open'); syncCamInputs(); }
   });
-
   function syncCamInputs() {
     $('cp-az').value = (CAM.az * 180 / Math.PI).toFixed(1);
     $('cp-el').value = (CAM.el * 180 / Math.PI).toFixed(1);
@@ -1664,7 +1004,6 @@ function initCamPanel() {
     $('cp-tx').value = CAM.tx.toFixed(2);
     $('cp-ty').value = CAM.ty.toFixed(2);
   }
-
   function applyFromInputs() {
     const MIN_R = DEF_R * 0.35, MAX_R = DEF_R * 4.0;
     CAM.az = parseFloat($('cp-az').value) * Math.PI / 180;
@@ -1674,9 +1013,7 @@ function initCamPanel() {
     CAM.ty = parseFloat($('cp-ty').value);
     markDirty();
   }
-
   $('cp-apply').addEventListener('click', applyFromInputs);
-
   $('cp-save').addEventListener('click', () => {
     applyFromInputs();
     Object.assign(CAM_DEFAULT, { az:CAM.az, el:CAM.el, r:CAM.r, tx:CAM.tx, ty:CAM.ty, tz:0 });
@@ -1687,16 +1024,14 @@ function initCamPanel() {
 }
 
 function initLightPanel() {
-  const toggle = $('light-toggle');
-  const panel  = $('light-panel');
+  const toggle = $('light-toggle'), panel = $('light-panel');
   toggle.addEventListener('click', () => {
-    const open = panel.classList.toggle('open');
-    toggle.classList.toggle('open', open);
+    const wasOpen = panel.classList.contains('open');
+    closeAllPanels();
+    if (!wasOpen) { panel.classList.add('open'); toggle.classList.add('open'); }
   });
-
   const wire = (id, key, valId) => {
-    const el = $(id);
-    const vl = $(valId);
+    const el = $(id), vl = $(valId);
     const updateTrack = () => {
       const pct = ((parseFloat(el.value) - parseFloat(el.min)) / (parseFloat(el.max) - parseFloat(el.min))) * 100;
       el.style.background = `linear-gradient(to right,var(--acc) ${pct}%,rgba(0,0,0,.12) ${pct}%)`;
@@ -1705,126 +1040,74 @@ function initLightPanel() {
       LIGHT_POWER[key] = parseFloat(el.value);
       vl.textContent = LIGHT_POWER[key].toFixed(2);
       updateTrack();
-      if (gl && PROG) { gl.useProgram(PROG); markDirty(); }
+      updateLights();
     });
     updateTrack();
   };
-
-  wire('lkey',  'key',  'key-val');
-  wire('lfill', 'fill', 'fill-val');
-  wire('lback', 'back', 'back-val');
-  wire('lamb',  'amb',  'amb-val');
-
+  wire('lkey','key','key-val'); wire('lfill','fill','fill-val');
+  wire('lback','back','back-val'); wire('lamb','amb','amb-val');
   $('light-reset').addEventListener('click', () => {
     Object.assign(LIGHT_POWER, LIGHT_POWER_DEFAULTS);
     const MAP = { lkey:'key', lfill:'fill', lback:'back', lamb:'amb' };
     for (const [id, key] of Object.entries(MAP)) {
-      const el = $(id);
-      el.value = LIGHT_POWER_DEFAULTS[key];
-      el.dispatchEvent(new Event('input'));
+      const el = $(id); el.value = LIGHT_POWER_DEFAULTS[key]; el.dispatchEvent(new Event('input'));
     }
   });
 }
 
 function initGradingPanel() {
-  const toggle = $('grade-toggle');
-  const panel  = $('grade-panel');
+  const toggle = $('grade-toggle'), panel = $('grade-panel');
   toggle.addEventListener('click', () => {
-    const open = panel.classList.toggle('open');
-    toggle.classList.toggle('open', open);
+    const wasOpen = panel.classList.contains('open');
+    closeAllPanels();
+    if (!wasOpen) { panel.classList.add('open'); toggle.classList.add('open'); }
   });
-
   const wire = (id, key, valId, decimals) => {
-    const el = document.getElementById(id);
-    const vl = document.getElementById(valId);
+    const el = document.getElementById(id), vl = document.getElementById(valId);
     const updateTrack = () => {
-      const min = parseFloat(el.min), max = parseFloat(el.max), val = parseFloat(el.value);
-      const pct = ((val - min) / (max - min)) * 100;
-      el.style.background = 'linear-gradient(to right,var(--acc) '+pct+'%,rgba(0,0,0,.12) '+pct+'%)';
+      const pct = ((parseFloat(el.value) - parseFloat(el.min)) / (parseFloat(el.max) - parseFloat(el.min))) * 100;
+      el.style.background = `linear-gradient(to right,var(--acc) ${pct}%,rgba(0,0,0,.12) ${pct}%)`;
     };
     el.addEventListener('input', () => {
       GRADE[key] = parseFloat(el.value);
       vl.textContent = GRADE[key].toFixed(decimals);
       updateTrack();
-      if (gl && PROG) { gl.useProgram(PROG); uploadGrading(); markDirty(); }
+      applyGrading();
     });
     updateTrack();
   };
-
-  wire('vib',  'vibrance',   'vib-val',  2);
-  wire('sat',  'saturation', 'sat-val',  2);
-  wire('con',  'contrast',   'con-val',  2);
-  wire('warm', 'warm',       'warm-val', 2);
-  wire('tint', 'tint',       'tint-val', 2);
-  wire('cool', 'cool',       'cool-val', 2);
-
+  wire('vib','vibrance','vib-val',2); wire('sat','saturation','sat-val',2);
+  wire('con','contrast','con-val',2); wire('warm','warm','warm-val',2);
+  wire('tint','tint','tint-val',2);   wire('cool','cool','cool-val',2);
+  const wireHDRI = (id, key, valId) => {
+    const el = $(id), vl = $(valId);
+    const updateTrack = () => {
+      const pct = ((parseFloat(el.value) - parseFloat(el.min)) / (parseFloat(el.max) - parseFloat(el.min))) * 100;
+      el.style.background = `linear-gradient(to right,var(--acc) ${pct}%,rgba(0,0,0,.12) ${pct}%)`;
+    };
+    el.addEventListener('input', () => {
+      HDRI[key] = parseFloat(el.value);
+      vl.textContent = HDRI[key].toFixed(2);
+      updateTrack();
+      applyGrading();
+    });
+    updateTrack();
+  };
+  wireHDRI('hdri','enabled','hdri-val'); wireHDRI('rough','roughness','rough-val');
   $('grade-reset').addEventListener('click', () => {
     Object.assign(GRADE, GRADE_DEFAULTS);
+    HDRI.enabled = 1.0; HDRI.roughness = 0.5;
     const MAP = { vib:'vibrance', sat:'saturation', con:'contrast', warm:'warm', tint:'tint', cool:'cool' };
     for (const [id, key] of Object.entries(MAP)) {
-      const el = document.getElementById(id);
-      el.value = GRADE_DEFAULTS[key];
-      el.dispatchEvent(new Event('input'));
+      const el = document.getElementById(id); el.value = GRADE_DEFAULTS[key]; el.dispatchEvent(new Event('input'));
     }
+    $('hdri').value = '1.00'; $('hdri').dispatchEvent(new Event('input'));
+    $('rough').value = '0.50'; $('rough').dispatchEvent(new Event('input'));
   });
 }
-// Place your .glb files in the same folder as this HTML file.
-// Edit the names below to match your actual filenames.
-const AUTOLOAD_MODELS = [
-  'GLAMIX-White.glb',
-  'GLAMIX-Voilet.glb',
-  'GLAMIX-Green.glb',
-  'GLAMIX-Fuschia.glb',
-];
 
-function loadGLBFromArrayBuffer(arrayBuffer, name, id) {
-  ovOn(); setP(5); setT('READING FILE…');
-  $('empty').style.display = 'none';
-  MESHES = [];
-  TEX_CACHE.clear();
-  try {
-    setP(65); setT('PARSING GLB…');
-    const { gltf, buffers } = parseGLB(arrayBuffer);
-    setP(82); setT('UPLOADING TO GPU…');
-    const tri = buildScene(gltf, buffers);
-    setP(100);
-    setTimeout(() => {
-      ovOff();
-      showInfo(name, tri);
-      markDirtyFor(4000); // keep rendering while textures upload
-      setTimeout(() => captureThumb(id), 500);
-    }, 280);
-  } catch(err) {
-    console.error(err);
-    ovOff();
-    $('empty').style.display = 'flex';
-    alert('Error loading model:\n' + err.message);
-  }
-}
-
-function autoLoadModels() {
-  AUTOLOAD_MODELS.forEach((filename, i) => {
-    const name = filename.replace(/\.[^.]+$/, '');
-    const id   = 'auto_' + i;
-    fetch(filename)
-      .then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
-      .then(buf => {
-        models[i] = { id, name, icon: ICONS[i % ICONS.length], color: CLRS[i % CLRS.length], file: null, arrayBuffer: buf };
-        renderCards();
-        if (!activeId) {
-          activeId = id;
-          renderCards();
-          loadGLBFromArrayBuffer(buf, name, id);
-        } else {
-          setTimeout(() => {
-            const m = models.find(m => m && m.id === id);
-            if (m && !m.thumb) captureThumbFromBuffer(m);
-          }, (i + 1) * 1200);
-        }
-      })
-      .catch(showFolderHint);
-  });
-}
+// ── AUTOLOAD ─────────────────────────────────────────────────────
+const AUTOLOAD_MODELS = ['GLAMIX-White.glb','GLAMIX-Voilet.glb','GLAMIX-Green.glb','GLAMIX-Fuschia.glb'];
 
 function showFolderHint() {
   const etxt = document.querySelector('.etxt');
@@ -1833,59 +1116,49 @@ function showFolderHint() {
   etxt.innerHTML = 'UPLOAD YOUR .GLB FILES &nbsp;|&nbsp; <label for="fi" style="color:var(--acc);cursor:pointer;text-decoration:underline">SELECT UP TO 4 FILES</label>';
 }
 
-function captureThumbFromBuffer(m) {
-  const prevMeshes = MESHES;
-  MESHES = [];
-  TEX_CACHE.clear();
-  try {
-    const { gltf, buffers } = parseGLB(m.arrayBuffer);
-    buildScene(gltf, buffers);
-    setTimeout(() => {
-      captureThumb(m.id);
-      MESHES = prevMeshes;
-      markDirty();
-    }, 800);
-  } catch(e) {
-    MESHES = prevMeshes;
-    markDirty();
-  }
+function autoLoadModels() {
+  if (location.protocol === 'file:') { showFolderHint(); return; }
+  AUTOLOAD_MODELS.forEach((filename, i) => {
+    const name = filename.replace(/\.[^.]+$/, '');
+    const id   = 'auto_' + i;
+    fetch(filename)
+      .then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+      .then(buf => {
+        models[i] = { id, name, icon: ICONS[i % ICONS.length], color: CLRS[i % CLRS.length], arrayBuffer: buf };
+        renderCards();
+        if (!activeId) {
+          activeId = id; renderCards();
+          loadGLBBytes(buf, name, id);
+        } else {
+          setTimeout(() => captureThumbFromBuffer(models.find(m => m && m.id === id)), (i + 1) * 1200);
+        }
+      })
+      .catch(() => showFolderHint());
+  });
 }
 
-function loadGLB(file, name, preloadedBuffer) {
-  ovOn(); setP(5); setT('READING FILE…');
-  $('empty').style.display = 'none';
-  MESHES = [];
-  TEX_CACHE.clear();
-
-  if (preloadedBuffer) {
-    loadGLBFromArrayBuffer(preloadedBuffer, name, activeId);
-    return;
-  }
-
-  const reader = new FileReader();
-  reader.onprogress = e => { if (e.total) setP(Math.round(e.loaded/e.total*55)+5); };
-  reader.onload = e => {
-    try {
-      setP(65); setT('PARSING GLB…');
-      const { gltf, buffers } = parseGLB(e.target.result);
-      setP(82); setT('UPLOADING TO GPU…');
-      const tri = buildScene(gltf, buffers);
-      setP(100);
-      setTimeout(() => {
-        ovOff();
-        showInfo(name, tri);
-        markDirtyFor(4000); // keep rendering while textures upload
-        setTimeout(() => captureThumb(activeId), 500);
-      }, 280);
-    } catch(err) {
-      console.error(err);
-      ovOff();
-      $('empty').style.display = 'flex';
-      alert('Error loading model:\n' + err.message);
-    }
-  };
-  reader.onerror = () => { ovOff(); alert('Could not read file.'); };
-  reader.readAsArrayBuffer(file);
+function captureThumbFromBuffer(m) {
+  if (!m) return;
+  const prevObj    = currentObject;
+  const loader = new THREE.GLTFLoader();
+  loader.parse(m.arrayBuffer.slice(0), window.location.href, gltf => {
+    const obj = gltf.scene;
+    const box = new THREE.Box3().setFromObject(obj);
+    const center = box.getCenter(new THREE.Vector3());
+    const size   = box.getSize(new THREE.Vector3());
+    const sc = 1.0 / Math.max(size.x, size.y, size.z);
+    obj.scale.setScalar(sc);
+    obj.position.sub(center.multiplyScalar(sc));
+    scene.add(obj);
+    currentObject = obj;
+    setTimeout(() => {
+      captureThumb(m.id);
+      scene.remove(obj);
+      currentObject = prevObj;
+      if (prevObj) scene.add(prevObj);
+      markDirty();
+    }, 600);
+  }, () => {}, () => {});
 }
 
 $('fi').addEventListener('change', e => {
@@ -1897,17 +1170,37 @@ $('fi').addEventListener('change', e => {
       const buf = ev.target.result;
       const idx = slotIdx >= 0 ? slotIdx : Math.max(4, models.filter(Boolean).length);
       const id  = slotIdx >= 0 ? 'auto_' + slotIdx : 'mdl' + Date.now() + i;
-      models[idx] = { id, name, icon: ICONS[idx % ICONS.length], color: CLRS[idx % CLRS.length], file, arrayBuffer: buf };
+      models[idx] = { id, name, icon: ICONS[idx % ICONS.length], color: CLRS[idx % CLRS.length], arrayBuffer: buf };
       renderCards();
-      if (!activeId || i === 0) {
-        activeId = id;
-        renderCards();
-        loadGLBFromArrayBuffer(buf, name, id);
-      }
+      if (!activeId || i === 0) { activeId = id; renderCards(); loadGLBBytes(buf, name, id); }
     };
     reader.readAsArrayBuffer(file);
   });
   e.target.value = '';
+});
+
+// ── BOOT ─────────────────────────────────────────────────────────
+// Suppress fetch rejections on file:// protocol
+window.addEventListener('unhandledrejection', e => {
+  const msg = e.reason?.message || String(e.reason);
+  if (msg.includes('fetch') || msg.includes('NetworkError') || msg.includes('Failed')) {
+    e.preventDefault();
+    showFolderHint();
+  }
+});
+
+window.addEventListener('load', () => {
+  resize();
+  renderCards();
+  setTimeout(ovOff, 500);
+  markDirtyFor(1000);
+  initCamPanel();
+  initLightPanel();
+  initGradingPanel();
+  initSnapshot();
+  initTheme();
+  $('reset-btn').addEventListener('click', () => { Object.assign(CAM, CAM_DEFAULT); markDirty(); });
+  autoLoadModels();
 });
 </script>
 </body>
