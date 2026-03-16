@@ -501,7 +501,7 @@ const renderer = new THREE.WebGLRenderer({
   alpha: false,
   powerPreference: 'high-performance'
 });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 3));
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.0;
@@ -519,20 +519,22 @@ let ENV_TEX  = null;
 let HDRI_LOADED = false;
 
 function loadHDRI(onDone) {
-  // Try to load the .hdr file from same directory
-  // Falls back to procedural studio env if not found
   const rgbe = new THREE.RGBELoader();
   rgbe.setDataType(THREE.HalfFloatType);
+  // Use a smaller render target for PMREM — 512 is plenty for reflections
+  pmrem.compileCubemapShader();
   rgbe.load('monochrome_studio_02_4k.hdr',
     tex => {
-      ENV_TEX = pmrem.fromEquirectangular(tex).texture;
+      // Downscale to 512 before PMREM processing — saves significant GPU memory
+      tex.minFilter = THREE.LinearFilter;
+      tex.magFilter = THREE.LinearFilter;
+      ENV_TEX = pmrem.fromEquirectangular(tex, { maxTextureSize: 512 }).texture;
       tex.dispose();
       HDRI_LOADED = true;
       if (onDone) onDone();
     },
     undefined,
     () => {
-      // HDR not found — fallback to procedural studio
       ENV_TEX = makeStudioEnv();
       if (onDone) onDone();
     }
@@ -781,7 +783,7 @@ function _doLoad(arrayBuffer, name, modelId) {
     setTimeout(() => {
       ovOff();
       showInfo(name, tris);
-      markDirtyFor(3000);
+      markDirtyFor(800);
       setTimeout(() => captureThumb(modelId), 400);
     }, 200);
 
@@ -1181,7 +1183,7 @@ window.addEventListener('unhandledrejection', e => {
 window.addEventListener('load', () => {
   resize();
   renderCards();
-  markDirtyFor(1000);
+  markDirtyFor(500);
   initCamPanel();
   initLightPanel();
   initGradingPanel();
