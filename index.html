@@ -557,7 +557,7 @@ function applyEnv() {
 function loadHDRI(onDone) {
   const rgbe = new THREE.RGBELoader();
   rgbe.setDataType(THREE.HalfFloatType);
-  rgbe.load('ferndale_studio_07_1k.hdr',
+  rgbe.load('studio_kontrast_04_2k.hdr',
     tex => {
       ENV_TEX = pmrem.fromEquirectangular(tex, { maxTextureSize: 256 }).texture;
       tex.dispose();
