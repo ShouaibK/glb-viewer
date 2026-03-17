@@ -501,7 +501,7 @@ const renderer = new THREE.WebGLRenderer({
   alpha: false,
   powerPreference: 'low-power'
 });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+renderer.setPixelRatio(window.devicePixelRatio);
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ReinhardToneMapping;
 renderer.toneMappingExposure = 1.0;
@@ -730,11 +730,20 @@ function _doLoad(arrayBuffer, name, modelId) {
 
     const obj = gltf.scene;
 
-    // Fix encoding on all materials
+    // Fix encoding + apply texture quality settings on all materials
+    const maxAniso = renderer.capabilities.getMaxAnisotropy();
     obj.traverse(node => {
       if (node.isMesh) {
         const mats = Array.isArray(node.material) ? node.material : [node.material];
         mats.forEach(m => {
+          const maps = [m.map, m.emissiveMap, m.normalMap, m.roughnessMap, m.metalnessMap, m.aoMap];
+          maps.forEach(tex => {
+            if (!tex) return;
+            tex.minFilter  = THREE.LinearMipmapLinearFilter;
+            tex.magFilter  = THREE.LinearFilter;
+            tex.anisotropy = maxAniso;
+            tex.needsUpdate = true;
+          });
           if (m.map) m.map.encoding = THREE.sRGBEncoding;
           if (m.emissiveMap) m.emissiveMap.encoding = THREE.sRGBEncoding;
           m.needsUpdate = true;
