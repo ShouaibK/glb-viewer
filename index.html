@@ -1184,13 +1184,11 @@ window.addEventListener('load', () => {
   initTheme();
   $('reset-btn').addEventListener('click', () => { Object.assign(CAM, CAM_DEFAULT); markDirty(); });
 
-  // Load models immediately — don't wait on the HDRI
-  autoLoadModels();
-
-  // HDRI loads in parallel and just applies the environment when ready
+  // Load HDRI first, then models
   loadHDRI(() => {
     applyEnv();
     setTimeout(ovOff, 300);
+    autoLoadModels();
   });
 });
 </script>
