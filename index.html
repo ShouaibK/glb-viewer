@@ -481,6 +481,26 @@ canvas:active{cursor:grabbing}
     <div class="snap-info" id="snap-info"></div>
   </div>
 </div>
+<svg width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true">
+  <defs>
+    <filter id="gradeFilter" color-interpolation-filters="sRGB">
+      <!-- Saturation + vibrance combined into one saturate matrix -->
+      <feColorMatrix id="gradeSaturate" type="saturate" values="0.92"/>
+      <!-- Contrast: uniform slope/intercept across channels, pivoted on mid-grey -->
+      <feComponentTransfer id="gradeContrast">
+        <feFuncR id="gradeContrastR" type="linear" slope="1.2" intercept="-0.1"/>
+        <feFuncG id="gradeContrastG" type="linear" slope="1.2" intercept="-0.1"/>
+        <feFuncB id="gradeContrastB" type="linear" slope="1.2" intercept="-0.1"/>
+      </feComponentTransfer>
+      <!-- Warm(R) / Tint(G) / Cool(B): independent per-channel gain -->
+      <feComponentTransfer id="gradeChannels">
+        <feFuncR id="gradeWarm" type="linear" slope="1.0" intercept="0"/>
+        <feFuncG id="gradeTint" type="linear" slope="1.0" intercept="0"/>
+        <feFuncB id="gradeCool" type="linear" slope="1.0" intercept="0"/>
+      </feComponentTransfer>
+    </filter>
+  </defs>
+</svg>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/loaders/RGBELoader.js"></script>
@@ -811,12 +831,30 @@ function updateLights() {
 }
 
 // ── COLOR GRADING ─────────────────────────────────────────────────
-// Three.js handles tonemapping; we apply post-process via CSS filter on canvas
+// Applied as a real per-channel SVG filter (see <filter id="gradeFilter">) on the canvas,
+// rather than a single averaged CSS brightness() value.
 const GRADE = { vibrance: 0.48, saturation: 0.92, contrast: 1.20, warm: 1.00, tint: 1.00, cool: 1.00 };
 const GRADE_DEFAULTS = { ...GRADE };
+
 function applyGrading() {
-  const brightness = (GRADE.warm + GRADE.tint + GRADE.cool) / 3;
-  canvasEl.style.filter = `saturate(${GRADE.saturation}) contrast(${GRADE.contrast}) brightness(${brightness.toFixed(3)})`;
+  // Vibrance boosts saturation on top of the base saturation slider (0 = no boost).
+  const satValue = Math.max(0, GRADE.saturation * (1 + GRADE.vibrance));
+  $('gradeSaturate').setAttribute('values', satValue.toFixed(3));
+
+  // Contrast: same slope on all channels, intercept keeps mid-grey (0.5) fixed.
+  const cSlope = GRADE.contrast;
+  const cIntercept = (0.5 * (1 - cSlope)).toFixed(3);
+  ['gradeContrastR', 'gradeContrastG', 'gradeContrastB'].forEach(id => {
+    $(id).setAttribute('slope', cSlope.toFixed(3));
+    $(id).setAttribute('intercept', cIntercept);
+  });
+
+  // Warm(R) / Tint(G) / Cool(B): independent per-channel gain — genuinely shifts color balance.
+  $('gradeWarm').setAttribute('slope', GRADE.warm.toFixed(3));
+  $('gradeTint').setAttribute('slope', GRADE.tint.toFixed(3));
+  $('gradeCool').setAttribute('slope', GRADE.cool.toFixed(3));
+
+  canvasEl.style.filter = 'url(#gradeFilter)';
   markDirty();
 }
 
@@ -904,7 +942,7 @@ function closeModel(id) {
     if (currentObject) { scene.remove(currentObject); currentObject = null; }
     $('minfo').style.display = 'none';
     $('hname').textContent = 'NO MODEL LOADED';
-    $('tc').textContent = '-- TRI';
+    $('tc').textContent = '— TRI';
     $('empty').style.display = 'flex';
     markDirty();
   }
@@ -1002,7 +1040,7 @@ function initCamPanel() {
   $('cp-apply').addEventListener('click', applyFromInputs);
   $('cp-save').addEventListener('click', () => {
     applyFromInputs();
-    Object.assign(CAM_DEFAULT, { az:CAM.az, el:CAM.el, r:CAM.r, tx:CAM.tx, ty:CAM.ty, tz:0 });
+    Object.assign(CAM_DEFAULT, { az:CAM.az, el:CAM.el, r:CAM.r, tx:CAM.tx, ty:CAM.ty, tz:CAM.tz });
     const btn = $('cp-save');
     btn.textContent = 'SAVED ✓';
     setTimeout(() => btn.textContent = 'SAVE AS DEFAULT', 1200);
@@ -1081,6 +1119,7 @@ function initGradingPanel() {
   wire('vib','vibrance','vib-val',2); wire('sat','saturation','sat-val',2);
   wire('con','contrast','con-val',2); wire('warm','warm','warm-val',2);
   wire('tint','tint','tint-val',2);   wire('cool','cool','cool-val',2);
+  applyGrading();
   $('grade-reset').addEventListener('click', () => {
     Object.assign(GRADE, GRADE_DEFAULTS);
     const MAP = { vib:'vibrance', sat:'saturation', con:'contrast', warm:'warm', tint:'tint', cool:'cool' };
