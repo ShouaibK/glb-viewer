@@ -518,9 +518,10 @@ const viewEl = $('viewer');
 const renderer = new THREE.WebGLRenderer({
   canvas: $('c'),
   antialias: false,
-  alpha: false,
+  alpha: true,
   powerPreference: 'low-power'
 });
+renderer.setClearColor(0x000000, 0);
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ReinhardToneMapping;
@@ -570,7 +571,6 @@ function applyEnv() {
   if (!ENV_TEX) return;
   scene.environment = ENV_TEX;
   renderer.toneMappingExposure = Math.max(0.01, HDRI.enabled);
-  scene.background = new THREE.Color(BG_COLOR);
   markDirty();
 }
 
@@ -590,9 +590,12 @@ function loadHDRI(onDone) {
 }
 
 // ── BACKGROUND ───────────────────────────────────────────────────
-let BG_COLOR = 0xf0f2f7;
+// The visible backdrop is the CSS radial-gradient already defined on #viewer
+// (theme-aware via --vbg-inner/--vbg-outer). The renderer stays transparent so
+// color grading (a CSS filter on the canvas) only ever touches the model's
+// rendered pixels, never the background.
+let BG_COLOR = 0xf0f2f7; // kept only for reference; no longer painted into the scene
 let isDark = false;
-scene.background = new THREE.Color(BG_COLOR);
 
 // ── LIGHTS ───────────────────────────────────────────────────────
 // ── LIGHT PANEL ──────────────────────────────────────────────────
@@ -880,7 +883,7 @@ function captureThumb(modelId, targetObj) {
   CAM.az = 0.6; CAM.el = 0.35; CAM.r = DEF_R;
   updateCamera();
   renderer.render(scene, camera);
-  const thumb = renderer.domElement.toDataURL('image/jpeg', 0.85);
+  const thumb = renderer.domElement.toDataURL('image/png');
   CAM.az = prevAz; CAM.el = prevEl; CAM.r = prevR;
   renderer.setSize(viewEl.clientWidth, viewEl.clientHeight, false);
   camera.aspect = viewEl.clientWidth / Math.max(viewEl.clientHeight, 1);
@@ -955,25 +958,13 @@ function takeSnapshot() {
   const btn = $('snap-btn');
   btn.classList.add('capturing');
 
-  // Render one clean frame
+  // Render one clean frame. The renderer is already transparent (alpha:true,
+  // clear alpha 0), so the output has real per-pixel transparency around the
+  // model — no need for a chroma-key hack, which risked punching holes in
+  // genuinely dark parts of the model itself.
   renderer.render(scene, camera);
   const W = renderer.domElement.width, H = renderer.domElement.height;
-  const off = document.createElement('canvas');
-  off.width = W; off.height = H;
-  const ctx = off.getContext('2d');
-  ctx.drawImage(renderer.domElement, 0, 0);
-
-  // Remove background
-  const imgData = ctx.getImageData(0, 0, W, H);
-  const d = imgData.data;
-  const bgR = d[0], bgG = d[1], bgB = d[2];
-  const thresh = 18;
-  for (let i = 0; i < d.length; i += 4) {
-    if (Math.abs(d[i]-bgR) < thresh && Math.abs(d[i+1]-bgG) < thresh && Math.abs(d[i+2]-bgB) < thresh)
-      d[i+3] = 0;
-  }
-  ctx.putImageData(imgData, 0, 0);
-  const dataURL = off.toDataURL('image/png');
+  const dataURL = renderer.domElement.toDataURL('image/png');
 
   $('snap-preview').src = dataURL;
   $('snap-info').textContent = W + ' × ' + H + 'px  •  PNG  •  transparent background';
@@ -1001,7 +992,6 @@ function initTheme() {
     isDark = !isDark;
     document.documentElement.classList.toggle('dark', isDark);
     BG_COLOR = isDark ? 0x07090e : 0xf0f2f7;
-    scene.background = new THREE.Color(BG_COLOR);
     markDirty();
   });
 }
