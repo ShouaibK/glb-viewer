@@ -894,10 +894,10 @@ function captureThumb(modelId, targetObj) {
 }
 
 // ── MODEL MANAGEMENT ─────────────────────────────────────────────
-const SLOT_NAMES = ['White', 'Voilet', 'Green', 'Fuschia'];
+const SLOT_NAMES = ['White', 'Voilet', 'Green', 'Fuschia', 'wigges'];
 const ICONS = ['📦','🌀','🔮','✨','🧊','💠','🛸','🎯'];
 const CLRS  = ['#00e5ff','#7c5cfc','#ff6b6b','#ffd166','#06d6a0','#f72585','#4cc9f0','#ff9f1c'];
-let models = [null, null, null, null];
+let models = [null, null, null, null, null];
 let activeId = null;
 
 function cardPreview(m, slotIdx) {
@@ -1120,7 +1120,7 @@ function initGradingPanel() {
 }
 
 // ── AUTOLOAD ─────────────────────────────────────────────────────
-const AUTOLOAD_MODELS = ['GLAMIX-White.glb','GLAMIX-Voilet.glb','GLAMIX-Green.glb','GLAMIX-Fuschia.glb'];
+const AUTOLOAD_MODELS = ['GLAMIX-White.glb','GLAMIX-Voilet.glb','GLAMIX-Green.glb','GLAMIX-Fuschia.glb','wiggles-packaging-mockup-v1.glb'];
 
 function showFolderHint() {
   const etxt = document.querySelector('.etxt');
