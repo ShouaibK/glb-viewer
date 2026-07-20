@@ -869,8 +869,8 @@ function showInfo(name, tri) {
   $('tc').textContent    = tri ? tri.toLocaleString() + ' TRI' : '— TRI';
 }
 
-function captureThumb(modelId) {
-  if (!currentObject) return;
+function captureThumb(modelId, targetObj) {
+  if (!targetObj && !currentObject) return;
   const prevAz = CAM.az, prevEl = CAM.el, prevR = CAM.r;
   const prevW = renderer.domElement.width, prevH = renderer.domElement.height;
   const TW = 320, TH = 200;
@@ -1162,7 +1162,6 @@ function autoLoadModels() {
 
 function captureThumbFromBuffer(m) {
   if (!m) return;
-  const prevObj    = currentObject;
   const loader = new THREE.GLTFLoader();
   loader.parse(m.arrayBuffer.slice(0), window.location.href, gltf => {
     const obj = gltf.scene;
@@ -1172,13 +1171,21 @@ function captureThumbFromBuffer(m) {
     const sc = 1.0 / Math.max(size.x, size.y, size.z);
     obj.scale.setScalar(sc);
     obj.position.sub(center.multiplyScalar(sc));
+
+    // Hide (don't remove) whatever is currently active — never touch currentObject itself,
+    // so a real model load happening concurrently can't be clobbered by this background task.
+    const wasVisible = currentObject ? currentObject.visible : null;
+    if (currentObject) currentObject.visible = false;
     scene.add(obj);
-    currentObject = obj;
+
     setTimeout(() => {
-      captureThumb(m.id);
+      captureThumb(m.id, obj);
+      // Always remove our own temp object — regardless of what currentObject is now.
       scene.remove(obj);
-      currentObject = prevObj;
-      if (prevObj) scene.add(prevObj);
+      // Only restore visibility if the active model is still the same object we hid.
+      // If the user loaded something else in the meantime, currentObject has already
+      // changed and we must not interfere with it.
+      if (currentObject && wasVisible !== null) currentObject.visible = wasVisible;
       markDirty();
     }, 600);
   }, () => {}, () => {});
