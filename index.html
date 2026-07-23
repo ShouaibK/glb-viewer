@@ -131,8 +131,8 @@ const lights={
  back:new THREE.DirectionalLight(0xffffff,LIGHT.back),
  amb:new THREE.AmbientLight(0xffffff,LIGHT.amb)
 };
-lights.key.position.set(5,-2,8);lights.fill.position.set(-5,2,8);lights.back.position.set(0,5,-8);
-scene.add(lights.key,lights.fill,lights.back,lights.amb);
+// Key/fill/back are camera-relative. updateCameraLights() positions them every camera update.
+scene.add(lights.key,lights.fill,lights.back,lights.amb,lights.key.target,lights.fill.target,lights.back.target);
 
 const CAM={az:THREE.MathUtils.degToRad(65),el:THREE.MathUtils.degToRad(-5),r:3,tx:0,ty:0,tz:0};
 let CAM_DEFAULT={...CAM}, fitRadius=1, modelCenter=new THREE.Vector3(), modelSphereRadius=1;
@@ -142,6 +142,58 @@ function updateCamera(){
  const ce=Math.cos(CAM.el),se=Math.sin(CAM.el),ca=Math.cos(CAM.az),sa=Math.sin(CAM.az);
  camera.position.set(CAM.tx+CAM.r*ca*ce,CAM.ty+CAM.r*se,CAM.tz+CAM.r*sa*ce);
  camera.lookAt(CAM.tx,CAM.ty,CAM.tz);
+ updateCameraLights();
+}
+
+const _lightTarget=new THREE.Vector3();
+const _viewDir=new THREE.Vector3();
+const _rightDir=new THREE.Vector3();
+const _upDir=new THREE.Vector3();
+const _worldUp=new THREE.Vector3(0,1,0);
+
+function updateCameraLights(){
+ // Target is the current orbit/pan center.
+ _lightTarget.set(CAM.tx,CAM.ty,CAM.tz);
+
+ // Direction from model toward camera.
+ _viewDir.copy(camera.position).sub(_lightTarget).normalize();
+
+ // Camera-relative right vector. Fall back safely near vertical camera angles.
+ _rightDir.crossVectors(_viewDir,_worldUp);
+ if(_rightDir.lengthSq()<1e-6)_rightDir.set(1,0,0);
+ else _rightDir.normalize();
+
+ // Camera-relative up vector.
+ _upDir.crossVectors(_rightDir,_viewDir).normalize();
+
+ // Scale rig with camera distance so its directional relationship remains stable.
+ const d=Math.max(CAM.r,0.01);
+
+ // KEY: camera/front-left and above.
+ lights.key.position.copy(_lightTarget)
+   .addScaledVector(_viewDir,d*.85)
+   .addScaledVector(_rightDir,-d*.48)
+   .addScaledVector(_upDir,d*.55);
+
+ // FILL: camera/front-right, softer and slightly lower.
+ lights.fill.position.copy(_lightTarget)
+   .addScaledVector(_viewDir,d*.72)
+   .addScaledVector(_rightDir,d*.58)
+   .addScaledVector(_upDir,d*.18);
+
+ // BACK/RIM: always behind the model relative to the CURRENT camera view.
+ lights.back.position.copy(_lightTarget)
+   .addScaledVector(_viewDir,-d*.90)
+   .addScaledVector(_rightDir,d*.20)
+   .addScaledVector(_upDir,d*.62);
+
+ // DirectionalLight targets must follow the model/orbit center too.
+ lights.key.target.position.copy(_lightTarget);
+ lights.fill.target.position.copy(_lightTarget);
+ lights.back.target.position.copy(_lightTarget);
+ lights.key.target.updateMatrixWorld();
+ lights.fill.target.updateMatrixWorld();
+ lights.back.target.updateMatrixWorld();
 }
 function render(){updateCamera();renderer.render(scene,camera)}
 function markDirty(){if(raf)return;raf=requestAnimationFrame(()=>{raf=0;render()})}
