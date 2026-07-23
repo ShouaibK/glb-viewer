@@ -32,6 +32,23 @@ input[type=range]{width:100%;accent-color:var(--acc)}input[type=number]{width:10
 #bar{height:104px;flex:none;background:var(--sur);border-top:1px solid var(--bor);display:flex;align-items:center;gap:8px;padding:10px 14px;overflow-x:auto}.mc,.upb{height:72px;flex:0 0 150px;border:1px solid var(--bor);border-radius:9px;background:var(--sur);position:relative;display:flex;align-items:center;overflow:hidden}.mc{cursor:pointer}.mc.act{border-color:var(--acc);box-shadow:0 0 0 1px color-mix(in srgb,var(--acc) 20%,transparent)}.mc.emp{opacity:.5}.cpv{width:58px;height:100%;display:grid;place-items:center;overflow:hidden;background:color-mix(in srgb,var(--bg) 70%,transparent);font-size:20px}.cpv img{width:100%;height:100%;object-fit:cover}.cin{min-width:0;padding:0 9px}.cnm{font-size:.6rem;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ctp{font:500 .48rem ui-monospace,monospace;color:var(--mut);margin-top:3px}.cbtn{position:absolute;right:4px;top:4px;width:18px;height:18px;border:0;border-radius:4px;background:transparent;color:var(--mut);cursor:pointer}.cbtn:hover{background:#fee;color:#c22}.upb{flex-basis:70px;justify-content:center;flex-direction:column;border-style:dashed;color:var(--mut);cursor:pointer;font:600 .5rem ui-monospace,monospace}.upb span{font-size:18px}#fi{display:none}
 #snap-modal{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center}#snap-modal.show{display:flex}#snap-box{max-width:90vw;max-height:90vh;background:var(--sur);border:1px solid var(--bor);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px}#snap-preview{max-width:75vw;max-height:62vh;object-fit:contain;background:repeating-conic-gradient(#ddd 0 25%,#fff 0 50%) 0/20px 20px}.snap-actions{display:flex;gap:8px}.snap-actions input{flex:1;min-width:0;height:32px;border:1px solid var(--bor);border-radius:6px;padding:0 8px;background:var(--bg);color:var(--txt)}.snap-actions button{height:32px;border:1px solid var(--bor);border-radius:6px;background:var(--sur);color:var(--txt);cursor:pointer}.snap-actions .save{background:var(--acc);color:#fff;border-color:var(--acc);padding:0 12px}.snap-info{font:500 .58rem ui-monospace,monospace;color:var(--mut)}
 @media(max-width:600px){header{height:48px;padding:0 10px}#hname{display:none}.chip:first-child{display:none}#bar{height:78px;padding:8px;gap:5px}.mc{flex:1 0 72px;height:60px}.cpv{width:38px}.ctp{display:none}.cnm{font-size:.5rem}.upb{height:60px;flex-basis:42px}.panel{left:8px;right:8px;width:auto;top:52px}#toolbar{right:8px;top:8px}.tb{width:34px;height:34px}#hint{display:none}#minfo{left:12px;top:12px}.mtit{font-size:1.05rem}}
+
+@media(max-width:600px){
+ header{padding-left:max(10px,env(safe-area-inset-left));padding-right:max(10px,env(safe-area-inset-right))}
+ #toolbar{right:max(8px,env(safe-area-inset-right));top:max(8px,env(safe-area-inset-top))}
+ #bar{padding-left:max(8px,env(safe-area-inset-left));padding-right:max(8px,env(safe-area-inset-right));padding-bottom:max(8px,env(safe-area-inset-bottom))}
+ .panel{left:max(8px,env(safe-area-inset-left));right:max(8px,env(safe-area-inset-right));max-height:calc(100% - 62px);overflow-y:auto;overscroll-behavior:contain}
+ .mc{min-width:92px;flex:0 0 92px}.cpv{width:40px}.cin{padding:0 6px}
+}
+@media(max-width:380px){
+ .logo{font-size:.7rem}.chip{padding:3px 6px}.tb{width:32px;height:32px;font-size:15px}
+ #toolbar{gap:4px}.mc{min-width:82px;flex-basis:82px}.cpv{width:34px}.cnm{font-size:.46rem}
+}
+@media(max-height:520px) and (orientation:landscape){
+ header{height:42px}.logo{font-size:.7rem}#bar{height:66px;padding-top:5px;padding-bottom:5px}.mc,.upb{height:54px}
+ .panel{top:48px;max-height:calc(100% - 54px)}#minfo{top:8px}.mtit{font-size:.95rem}
+}
+
 </style>
 </head>
 <body>
@@ -40,7 +57,7 @@ input[type=range]{width:100%;accent-color:var(--acc)}input[type=number]{width:10
 <div id="viewer">
 <div id="dotbg"></div><canvas id="c"></canvas>
 <div id="minfo" style="display:none"><div class="mlbl">Currently Viewing</div><div class="mtit" id="mt"></div><div class="msub" id="ms"></div></div>
-<div id="hint"><b>DRAG</b>Orbit <b>RMB</b>Pan <b>SCROLL</b>Zoom <b>DBL</b>Fit</div>
+<div id="hint"><b>DRAG</b>Orbit <b>RMB</b>Pan <b>SCROLL</b>Zoom <b>DBL CLICK</b>Reset</div>
 <div id="toolbar">
 <button class="tb" id="light-toggle" title="Lighting">☀</button>
 <button class="tb" id="snap-btn" title="Snapshot">⌾</button>
@@ -57,17 +74,17 @@ input[type=range]{width:100%;accent-color:var(--acc)}input[type=number]{width:10
 <button class="pbtn primary" id="cp-apply">APPLY</button><button class="pbtn" id="cp-save">SAVE AS DEFAULT</button></div>
 
 <div class="panel" id="light-panel"><div class="ptitle">Lighting</div>
-<div class="row"><div class="label"><span>Key</span><em id="key-val">0.60</em></div><input type="range" id="lkey" min="0" max="3" step=".01" value=".6"></div>
-<div class="row"><div class="label"><span>Fill</span><em id="fill-val">0.15</em></div><input type="range" id="lfill" min="0" max="3" step=".01" value=".15"></div>
-<div class="row"><div class="label"><span>Back</span><em id="back-val">0.80</em></div><input type="range" id="lback" min="0" max="3" step=".01" value=".8"></div>
-<div class="row"><div class="label"><span>Ambient</span><em id="amb-val">0.10</em></div><input type="range" id="lamb" min="0" max="2" step=".01" value=".1"></div>
-<div class="sep"></div><div class="row"><div class="label"><span>HDRI Intensity</span><em id="hdri-val">1.50</em></div><input type="range" id="hdri" min="0" max="3" step=".01" value="1.5"></div>
+<div class="row"><div class="label"><span>Key</span><em id="key-val">0.42</em></div><input type="range" id="lkey" min="0" max="3" step=".01" value=".42"></div>
+<div class="row"><div class="label"><span>Fill</span><em id="fill-val">0.10</em></div><input type="range" id="lfill" min="0" max="3" step=".01" value=".10"></div>
+<div class="row"><div class="label"><span>Back</span><em id="back-val">0.45</em></div><input type="range" id="lback" min="0" max="3" step=".01" value=".45"></div>
+<div class="row"><div class="label"><span>Ambient</span><em id="amb-val">0.06</em></div><input type="range" id="lamb" min="0" max="2" step=".01" value=".06"></div>
+<div class="sep"></div><div class="row"><div class="label"><span>HDRI Intensity</span><em id="hdri-val">0.85</em></div><input type="range" id="hdri" min="0" max="3" step=".01" value=".85"></div>
 <button class="pbtn" id="light-reset">RESET TO DEFAULTS</button></div>
 
 <div class="panel" id="grade-panel"><div class="ptitle">Color Grading</div>
-<div class="row"><div class="label"><span>Vibrance</span><em id="vib-val">0.48</em></div><input type="range" id="vib" min="0" max="1" step=".01" value=".48"></div>
-<div class="row"><div class="label"><span>Saturation</span><em id="sat-val">0.92</em></div><input type="range" id="sat" min=".5" max="2" step=".01" value=".92"></div>
-<div class="row"><div class="label"><span>Contrast</span><em id="con-val">1.20</em></div><input type="range" id="con" min=".5" max="2" step=".01" value="1.2"></div>
+<div class="row"><div class="label"><span>Vibrance</span><em id="vib-val">0.12</em></div><input type="range" id="vib" min="0" max="1" step=".01" value=".12"></div>
+<div class="row"><div class="label"><span>Saturation</span><em id="sat-val">1.00</em></div><input type="range" id="sat" min=".5" max="2" step=".01" value="1"></div>
+<div class="row"><div class="label"><span>Contrast</span><em id="con-val">1.06</em></div><input type="range" id="con" min=".5" max="2" step=".01" value="1.06"></div>
 <div class="sep"></div>
 <div class="row"><div class="label"><span>Warmth (R)</span><em id="warm-val">1.00</em></div><input type="range" id="warm" min=".85" max="1.2" step=".01" value="1"></div>
 <div class="row"><div class="label"><span>Tint (G)</span><em id="tint-val">1.00</em></div><input type="range" id="tint" min=".85" max="1.2" step=".01" value="1"></div>
@@ -97,17 +114,17 @@ const progress=(t,p)=>{$('pt').textContent=t;$('pf').style.width=p+'%'};
 
 const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:'high-performance',preserveDrawingBuffer:true});
 renderer.setClearColor(0x000000,0);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,matchMedia('(pointer:coarse)').matches?1.5:2));
 renderer.outputColorSpace=THREE.SRGBColorSpace;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure=1.0;
+renderer.toneMappingExposure=0.82;
 renderer.shadowMap.enabled=false;
 
 const scene=new THREE.Scene();
 const camera=new THREE.PerspectiveCamera(45,1,.01,1000);
 let envTex=null;
-const ENV={intensity:1.5};
-const LIGHT={key:.6,fill:.15,back:.8,amb:.1}, LIGHT0={...LIGHT};
+const ENV={intensity:0.85};
+const LIGHT={key:.42,fill:.10,back:.45,amb:.06}, LIGHT0={...LIGHT};
 const lights={
  key:new THREE.DirectionalLight(0xfff8f0,LIGHT.key),
  fill:new THREE.DirectionalLight(0xf0f8ff,LIGHT.fill),
@@ -130,10 +147,11 @@ function render(){updateCamera();renderer.render(scene,camera)}
 function markDirty(){if(raf)return;raf=requestAnimationFrame(()=>{raf=0;render()})}
 function resize(){
  const w=Math.max(1,view.clientWidth),h=Math.max(1,view.clientHeight);
- renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+ renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,matchMedia('(pointer:coarse)').matches?1.5:2));
  renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();markDirty();
 }
 new ResizeObserver(resize).observe(view);
+window.addEventListener('orientationchange',()=>setTimeout(resize,120));
 
 function fitDistanceForBox(box,margin=1.22,aspect=camera.aspect){
  const size=box.getSize(new THREE.Vector3());
@@ -151,7 +169,8 @@ function fitCameraToObject(obj,resetAngles=true){
  const sphere=box.getBoundingSphere(new THREE.Sphere());
  modelCenter.copy(sphere.center);modelSphereRadius=Math.max(sphere.radius,.001);
  CAM.tx=sphere.center.x;CAM.ty=sphere.center.y;CAM.tz=sphere.center.z;
- fitRadius=Math.max(fitDistanceForBox(box)*1.22,modelSphereRadius*1.6,.01);
+ const portraitBoost=camera.aspect<0.75?1.12:1;
+ fitRadius=Math.max(fitDistanceForBox(box)*1.18*portraitBoost,modelSphereRadius*1.55,.01);
  CAM.r=fitRadius;
  if(resetAngles){CAM.az=THREE.MathUtils.degToRad(65);CAM.el=THREE.MathUtils.degToRad(-5)}
  camera.near=Math.max(modelSphereRadius/1000,.001);
@@ -229,12 +248,11 @@ async function loadEnvironment(){
 function applyEnvironment(){scene.environment=envTex;scene.environmentIntensity=ENV.intensity;markDirty()}
 function updateLights(){lights.key.intensity=LIGHT.key;lights.fill.intensity=LIGHT.fill;lights.back.intensity=LIGHT.back;lights.amb.intensity=LIGHT.amb;markDirty()}
 
-const GRADE={vibrance:.48,saturation:.92,contrast:1.2,warm:1,tint:1,cool:1},GRADE0={...GRADE};
+const GRADE={vibrance:.12,saturation:1.00,contrast:1.06,warm:1,tint:1,cool:1},GRADE0={...GRADE};
 function applyGrading(){
- const sat=Math.max(0,GRADE.saturation*(1+GRADE.vibrance*.65));
- const brightness=(GRADE.warm+GRADE.tint+GRADE.cool)/3;
+ const sat=Math.max(0,GRADE.saturation*(1+GRADE.vibrance*.35));
  const hue=((GRADE.warm-GRADE.cool)*8+(1-GRADE.tint)*5);
- canvas.style.filter=`saturate(${sat}) contrast(${GRADE.contrast}) brightness(${brightness}) hue-rotate(${hue}deg)`;
+ canvas.style.filter=`saturate(${sat}) contrast(${GRADE.contrast}) hue-rotate(${hue}deg)`;
  markDirty();
 }
 
@@ -262,14 +280,14 @@ function closeModel(id){
 
 const thumbCanvas=document.createElement('canvas');thumbCanvas.width=320;thumbCanvas.height=200;
 const thumbRenderer=new THREE.WebGLRenderer({canvas:thumbCanvas,antialias:true,alpha:true,powerPreference:'low-power',preserveDrawingBuffer:true});
-thumbRenderer.setPixelRatio(1);thumbRenderer.setSize(320,200,false);thumbRenderer.outputColorSpace=THREE.SRGBColorSpace;thumbRenderer.toneMapping=THREE.ACESFilmicToneMapping;
+thumbRenderer.setPixelRatio(1);thumbRenderer.setSize(320,200,false);thumbRenderer.outputColorSpace=THREE.SRGBColorSpace;thumbRenderer.toneMapping=THREE.ACESFilmicToneMapping;thumbRenderer.toneMappingExposure=.82;
 let thumbQueue=Promise.resolve();
 function queueThumbnail(id,buf){thumbQueue=thumbQueue.then(()=>makeThumbnail(id,buf)).catch(console.warn)}
 async function makeThumbnail(id,buf){
  const model=models.find(m=>m?.id===id);if(!model)return;
  const gltf=await parseGLB(buf);const obj=gltf.scene;prepareObject(obj);
  const ts=new THREE.Scene();ts.environment=envTex;ts.environmentIntensity=ENV.intensity;
- const amb=new THREE.AmbientLight(0xffffff,.25),key=new THREE.DirectionalLight(0xffffff,1.2);key.position.set(4,5,6);ts.add(amb,key,obj);
+ const amb=new THREE.AmbientLight(0xffffff,.08),key=new THREE.DirectionalLight(0xffffff,.48);key.position.set(4,5,6);ts.add(amb,key,obj);
  const box=new THREE.Box3().setFromObject(obj),center=box.getCenter(new THREE.Vector3()),size=box.getSize(new THREE.Vector3());
  const tc=new THREE.PerspectiveCamera(42,1.6,.001,10000),dist=Math.max(size.length(),.01)*1.05;
  tc.position.copy(center).add(new THREE.Vector3(dist*.7,dist*.45,dist*.8));tc.lookAt(center);tc.near=Math.max(dist/1000,.001);tc.far=dist*100;tc.updateProjectionMatrix();
@@ -296,19 +314,71 @@ async function autoLoad(){
  if(!models.some(Boolean))$('empty').style.display='flex';
 }
 
-let drag=null;
-canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);drag={id:e.pointerId,btn:e.button,x:e.clientX,y:e.clientY};e.preventDefault()});
-canvas.addEventListener('pointermove',e=>{if(!drag||drag.id!==e.pointerId)return;const dx=(e.clientX-drag.x)*.012,dy=(e.clientY-drag.y)*.012;drag.x=e.clientX;drag.y=e.clientY;
- if(drag.btn===0){CAM.az+=dx;CAM.el=THREE.MathUtils.clamp(CAM.el+dy,-1.5,1.5)}
- else{const s=CAM.r*.55;CAM.tx-=Math.cos(CAM.az)*dx*s;CAM.tz-=Math.sin(CAM.az)*dx*s;CAM.ty+=dy*s}markDirty()});
-canvas.addEventListener('pointerup',()=>drag=null);canvas.addEventListener('pointercancel',()=>drag=null);
+let pointers=new Map(),gesture=null;
+
+function pointerPoint(e){return{x:e.clientX,y:e.clientY}}
+function twoPointerState(){
+ const pts=[...pointers.values()];
+ if(pts.length<2)return null;
+ const a=pts[0],b=pts[1];
+ return{
+  dist:Math.max(1,Math.hypot(a.x-b.x,a.y-b.y)),
+  cx:(a.x+b.x)*.5,
+  cy:(a.y+b.y)*.5
+ };
+}
+function panCamera(dx,dy){
+ const scale=CAM.r*.00145;
+ // Camera-space horizontal pan, plus world vertical pan.
+ CAM.tx-=Math.cos(CAM.az)*dx*scale;
+ CAM.tz-=Math.sin(CAM.az)*dx*scale;
+ CAM.ty+=dy*scale;
+}
+canvas.addEventListener('pointerdown',e=>{
+ canvas.setPointerCapture?.(e.pointerId);
+ pointers.set(e.pointerId,{...pointerPoint(e),button:e.button,pointerType:e.pointerType});
+ if(pointers.size===2)gesture=twoPointerState();
+ e.preventDefault();
+});
+canvas.addEventListener('pointermove',e=>{
+ const prev=pointers.get(e.pointerId);if(!prev)return;
+ const now=pointerPoint(e);pointers.set(e.pointerId,{...prev,...now});
+
+ if(pointers.size>=2){
+  const g=twoPointerState();if(!g)return;
+  if(gesture){
+   const zoomFactor=gesture.dist/g.dist;
+   const min=Math.max(fitRadius*.12,.001),max=Math.max(fitRadius*8,min*2);
+   CAM.r=THREE.MathUtils.clamp(CAM.r*zoomFactor,min,max);
+   panCamera(g.cx-gesture.cx,gesture.cy-g.cy);
+  }
+  gesture=g;markDirty();e.preventDefault();return;
+ }
+
+ gesture=null;
+ const dx=now.x-prev.x,dy=now.y-prev.y;
+ const isMousePan=e.pointerType==='mouse' && (prev.button===2 || (e.buttons&2));
+ if(isMousePan)panCamera(dx,-dy);
+ else{
+  CAM.az+=dx*.012;
+  CAM.el=THREE.MathUtils.clamp(CAM.el+dy*.012,-1.5,1.5);
+ }
+ markDirty();e.preventDefault();
+});
+function releasePointer(e){
+ pointers.delete(e.pointerId);
+ gesture=pointers.size===2?twoPointerState():null;
+}
+canvas.addEventListener('pointerup',releasePointer);
+canvas.addEventListener('pointercancel',releasePointer);
+canvas.addEventListener('lostpointercapture',releasePointer);
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
-canvas.addEventListener('wheel',e=>{const min=Math.max(fitRadius*.12,.001),max=Math.max(fitRadius*8,min*2);CAM.r=THREE.MathUtils.clamp(CAM.r*Math.exp(e.deltaY*.001),min,max);e.preventDefault();markDirty()},{passive:false});
+canvas.addEventListener('wheel',e=>{
+ const min=Math.max(fitRadius*.12,.001),max=Math.max(fitRadius*8,min*2);
+ CAM.r=THREE.MathUtils.clamp(CAM.r*Math.exp(e.deltaY*.001),min,max);
+ e.preventDefault();markDirty();
+},{passive:false});
 canvas.addEventListener('dblclick',resetCamera);
-let pinch=null;
-canvas.addEventListener('touchstart',e=>{if(e.touches.length===2)pinch=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY)},{passive:true});
-canvas.addEventListener('touchmove',e=>{if(e.touches.length===2&&pinch){const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);CAM.r*=pinch/Math.max(d,1);pinch=d;markDirty()}},{passive:true});
-canvas.addEventListener('touchend',()=>pinch=null,{passive:true});
 
 function closePanels(){['cam','light','grade'].forEach(x=>{$(x+'-panel').classList.remove('open');$(x+'-toggle').classList.remove('open')})}
 function panelToggle(name){const p=$(name+'-panel'),was=p.classList.contains('open');closePanels();if(!was){p.classList.add('open');$(name+'-toggle').classList.add('open');if(name==='cam')syncCam()}}
@@ -320,7 +390,7 @@ $('cp-apply').onclick=applyCam;$('cp-save').onclick=()=>{applyCam();CAM_DEFAULT=
 
 for(const [id,key,val] of [['lkey','key','key-val'],['lfill','fill','fill-val'],['lback','back','back-val'],['lamb','amb','amb-val']])$(id).oninput=e=>{LIGHT[key]=+e.target.value;$(val).textContent=LIGHT[key].toFixed(2);updateLights()};
 $('hdri').oninput=e=>{ENV.intensity=+e.target.value;$('hdri-val').textContent=ENV.intensity.toFixed(2);applyEnvironment()};
-$('light-reset').onclick=()=>{Object.assign(LIGHT,LIGHT0);ENV.intensity=1.5;for(const [id,key,val] of [['lkey','key','key-val'],['lfill','fill','fill-val'],['lback','back','back-val'],['lamb','amb','amb-val']]){$(id).value=LIGHT[key];$(val).textContent=LIGHT[key].toFixed(2)}$('hdri').value=1.5;$('hdri-val').textContent='1.50';updateLights();applyEnvironment()};
+$('light-reset').onclick=()=>{Object.assign(LIGHT,LIGHT0);ENV.intensity=.85;for(const [id,key,val] of [['lkey','key','key-val'],['lfill','fill','fill-val'],['lback','back','back-val'],['lamb','amb','amb-val']]){$(id).value=LIGHT[key];$(val).textContent=LIGHT[key].toFixed(2)}$('hdri').value=.85;$('hdri-val').textContent='0.85';updateLights();applyEnvironment()};
 
 for(const [id,key,val] of [['vib','vibrance','vib-val'],['sat','saturation','sat-val'],['con','contrast','con-val'],['warm','warm','warm-val'],['tint','tint','tint-val'],['cool','cool','cool-val']])$(id).oninput=e=>{GRADE[key]=+e.target.value;$(val).textContent=GRADE[key].toFixed(2);applyGrading()};
 $('grade-reset').onclick=()=>{Object.assign(GRADE,GRADE0);for(const [id,key,val] of [['vib','vibrance','vib-val'],['sat','saturation','sat-val'],['con','contrast','con-val'],['warm','warm','warm-val'],['tint','tint','tint-val'],['cool','cool','cool-val']]){$(id).value=GRADE[key];$(val).textContent=GRADE[key].toFixed(2)}applyGrading()};
