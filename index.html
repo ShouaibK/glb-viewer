@@ -153,14 +153,16 @@ function resize(){
 new ResizeObserver(resize).observe(view);
 window.addEventListener('orientationchange',()=>setTimeout(resize,120));
 
-function fitDistanceForBox(box,margin=1.22,aspect=camera.aspect){
+function fitDistanceForBox(box,aspect=camera.aspect){
  const size=box.getSize(new THREE.Vector3());
  const vfov=THREE.MathUtils.degToRad(camera.fov);
- const hfov=2*Math.atan(Math.tan(vfov/2)*aspect);
- const dv=(size.y*.5)/Math.tan(vfov/2);
- const dh=(size.x*.5)/Math.tan(hfov/2);
- const depth=size.z*.5;
- return Math.max(dv,dh)+depth;
+ const hfov=2*Math.atan(Math.tan(vfov/2)*Math.max(aspect,.01));
+
+ // Fit both width and height, then add half the model depth so the
+ // nearest geometry does not intrude into the framing calculation.
+ const vertical=(size.y*.5)/Math.tan(vfov*.5);
+ const horizontal=(size.x*.5)/Math.tan(hfov*.5);
+ return Math.max(vertical,horizontal)+(size.z*.5);
 }
 function fitCameraToObject(obj,resetAngles=true){
  obj.updateWorldMatrix(true,true);
@@ -169,8 +171,14 @@ function fitCameraToObject(obj,resetAngles=true){
  const sphere=box.getBoundingSphere(new THREE.Sphere());
  modelCenter.copy(sphere.center);modelSphereRadius=Math.max(sphere.radius,.001);
  CAM.tx=sphere.center.x;CAM.ty=sphere.center.y;CAM.tz=sphere.center.z;
- const portraitBoost=camera.aspect<0.75?1.12:1;
- fitRadius=Math.max(fitDistanceForBox(box)*1.18*portraitBoost,modelSphereRadius*1.55,.01);
+ // Consistent product framing:
+ // desktop/tablet: ~16% breathing room;
+ // portrait phones: extra room for the narrow viewport and touch UI.
+ const aspect=camera.aspect;
+ let framing=1.16;
+ if(aspect<0.75) framing=1.28;
+ else if(aspect<1.0) framing=1.22;
+ fitRadius=Math.max(fitDistanceForBox(box,aspect)*framing,modelSphereRadius*1.35,.01);
  CAM.r=fitRadius;
  if(resetAngles){CAM.az=THREE.MathUtils.degToRad(65);CAM.el=THREE.MathUtils.degToRad(-5)}
  camera.near=Math.max(modelSphereRadius/1000,.001);
@@ -178,7 +186,10 @@ function fitCameraToObject(obj,resetAngles=true){
  camera.updateProjectionMatrix();
  CAM_DEFAULT={...CAM};markDirty();
 }
-function resetCamera(){if(currentObject)fitCameraToObject(currentObject,true);else{Object.assign(CAM,CAM_DEFAULT);markDirty()}}
+function resetCamera(){
+ if(currentObject) fitCameraToObject(currentObject,true);
+ else {Object.assign(CAM,CAM_DEFAULT);markDirty()}
+}
 
 function disposeMaterial(m){
  if(!m)return;
