@@ -24,7 +24,7 @@ header{height:52px;flex:none;background:var(--sur);border-bottom:1px solid var(-
 .tb{width:38px;height:38px;border:1px solid var(--bor);border-radius:8px;background:var(--panel);color:var(--mut);cursor:pointer;display:grid;place-items:center;font-size:17px}.tb:hover,.tb.open{color:var(--acc);border-color:var(--acc)}
 .panel{position:absolute;right:12px;top:56px;z-index:19;width:230px;padding:14px 16px;border:1px solid var(--bor);border-radius:12px;background:var(--panel);backdrop-filter:blur(10px);box-shadow:0 8px 28px rgba(0,0,0,.14);display:none}.panel.open{display:block}
 .ptitle{font-size:.62rem;font-weight:750;letter-spacing:.13em;text-transform:uppercase;color:var(--mut);margin-bottom:10px}.row{margin:8px 0}.label{display:flex;justify-content:space-between;gap:8px;font-size:.62rem;font-weight:600;margin-bottom:4px}.label em{font-style:normal;font:500 .6rem ui-monospace,monospace;color:var(--mut)}
-input[type=range]{width:100%;accent-color:var(--acc)}input[type=number]{width:100%;height:29px;border:1px solid var(--bor);border-radius:6px;background:var(--sur);color:var(--txt);padding:0 8px;font:500 .68rem ui-monospace,monospace}
+input[type=range]{width:100%;accent-color:var(--acc)}select{width:100%;height:29px;border:1px solid var(--bor);border-radius:6px;background:var(--sur);color:var(--txt);padding:0 8px;font:500 .62rem ui-monospace,monospace}input[type=number]{width:100%;height:29px;border:1px solid var(--bor);border-radius:6px;background:var(--sur);color:var(--txt);padding:0 8px;font:500 .68rem ui-monospace,monospace}
 .twocol{display:grid;grid-template-columns:1fr 1fr;gap:8px}.pbtn{width:100%;height:29px;margin-top:7px;border-radius:6px;border:1px solid var(--bor);background:var(--sur);color:var(--mut);cursor:pointer;font:600 .56rem ui-monospace,monospace;letter-spacing:.07em}.pbtn.primary{background:var(--acc);border-color:var(--acc);color:#fff}
 .sep{height:1px;background:var(--bor);margin:10px 0}
 #ov{position:absolute;inset:0;z-index:30;background:color-mix(in srgb,var(--bg) 94%,transparent);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;transition:opacity .25s}.off{opacity:0;pointer-events:none}.ring{width:30px;height:30px;border:2px solid var(--bor);border-top-color:var(--acc);border-radius:50%;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}#pb{width:160px;height:3px;background:var(--bor);border-radius:4px;overflow:hidden}#pf{height:100%;width:0;background:var(--acc)}#pt{font:600 .56rem ui-monospace,monospace;letter-spacing:.12em;color:var(--mut)}
@@ -71,13 +71,21 @@ input[type=range]{width:100%;accent-color:var(--acc)}input[type=number]{width:10
 <div class="row"><div class="label"><span>Elevation °</span></div><input id="cp-el" type="number" step=".1"></div>
 <div class="row"><div class="label"><span>Zoom Distance</span></div><input id="cp-r" type="number" step=".01"></div>
 <div class="twocol"><div class="row"><div class="label"><span>Pan X</span></div><input id="cp-tx" type="number" step=".01"></div><div class="row"><div class="label"><span>Pan Y</span></div><input id="cp-ty" type="number" step=".01"></div></div>
+<button class="pbtn primary" id="cp-apply">APPLY</button>
+</div>
 
 <div class="panel" id="light-panel"><div class="ptitle">Lighting</div>
 <div class="row"><div class="label"><span>Key</span><em id="key-val">1.00</em></div><input type="range" id="lkey" min="0" max="3" step=".01" value="1"></div>
 <div class="row"><div class="label"><span>Fill</span><em id="fill-val">0.20</em></div><input type="range" id="lfill" min="0" max="3" step=".01" value=".20"></div>
 <div class="row"><div class="label"><span>Back</span><em id="back-val">0.45</em></div><input type="range" id="lback" min="0" max="3" step=".01" value=".45"></div>
 <div class="row"><div class="label"><span>Ambient</span><em id="amb-val">0.06</em></div><input type="range" id="lamb" min="0" max="2" step=".01" value=".06"></div>
-<div class="sep"></div><div class="row"><div class="label"><span>HDRI Intensity</span><em id="hdri-val">0.85</em></div><input type="range" id="hdri" min="0" max="3" step=".01" value=".85"></div>
+<div class="sep"></div>
+<div class="row"><div class="label"><span>HDRI Environment</span></div>
+<select id="hdri-select">
+<option value="studio_kontrast_04_2k.hdr">Studio Kontrast 04</option>
+<option value="ferndale_studio_07_1k.hdr">Ferndale Studio 07</option>
+</select></div>
+<div class="row"><div class="label"><span>HDRI Intensity</span><em id="hdri-val">0.85</em></div><input type="range" id="hdri" min="0" max="3" step=".01" value=".85"></div>
 <button class="pbtn" id="light-reset">RESET TO DEFAULTS</button></div>
 
 <div class="panel" id="grade-panel"><div class="ptitle">Color Grading</div>
@@ -121,7 +129,8 @@ renderer.shadowMap.enabled=false;
 
 const scene=new THREE.Scene();
 const camera=new THREE.PerspectiveCamera(45,1,.01,1000);
-let envTex=null;
+let envTex=null,currentHDRI='studio_kontrast_04_2k.hdr';
+const envCache=new Map();
 const ENV={intensity:0.85};
 const LIGHT={key:1.00,fill:.20,back:.45,amb:.06}, LIGHT0={...LIGHT};
 const lights={
@@ -306,13 +315,24 @@ async function loadGLBBytes(buf,name,id){
  }catch(err){if(gen!==loadGeneration)return;console.error(err);ovOff();$('empty').style.display='flex';alert('Error loading model:\\n'+(err?.message||err))}
 }
 
-async function loadEnvironment(){
+async function loadEnvironment(file=currentHDRI){
+ currentHDRI=file;
  try{
-  const hdr=await new RGBELoader().loadAsync('studio_kontrast_04_2k.hdr');
+  if(envCache.has(file)){
+   envTex=envCache.get(file);
+   applyEnvironment();
+   return;
+  }
+  const hdr=await new RGBELoader().loadAsync(file);
   const pmrem=new THREE.PMREMGenerator(renderer);pmrem.compileEquirectangularShader();
-  envTex=pmrem.fromEquirectangular(hdr).texture;hdr.dispose();pmrem.dispose();
+  const processed=pmrem.fromEquirectangular(hdr).texture;
+  hdr.dispose();pmrem.dispose();
+  envCache.set(file,processed);
+  if(currentHDRI!==file)return;
+  envTex=processed;
  }catch(e){
-  console.warn('HDRI unavailable, using neutral fallback.',e);
+  console.warn('HDRI unavailable, using neutral fallback.',file,e);
+  if(currentHDRI!==file)return;
   const pmrem=new THREE.PMREMGenerator(renderer);
   const s=new THREE.Scene();s.background=new THREE.Color(.75,.75,.75);
   const hemi=new THREE.HemisphereLight(0xffffff,0x777777,2);s.add(hemi);
@@ -472,8 +492,9 @@ function applyCam(){CAM.az=THREE.MathUtils.degToRad(+$('cp-az').value||0);CAM.el
 $('cp-apply').onclick=applyCam;
 
 for(const [id,key,val] of [['lkey','key','key-val'],['lfill','fill','fill-val'],['lback','back','back-val'],['lamb','amb','amb-val']])$(id).oninput=e=>{LIGHT[key]=+e.target.value;$(val).textContent=LIGHT[key].toFixed(2);updateLights()};
+$('hdri-select').onchange=e=>loadEnvironment(e.target.value);
 $('hdri').oninput=e=>{ENV.intensity=+e.target.value;$('hdri-val').textContent=ENV.intensity.toFixed(2);applyEnvironment()};
-$('light-reset').onclick=()=>{Object.assign(LIGHT,LIGHT0);ENV.intensity=.85;for(const [id,key,val] of [['lkey','key','key-val'],['lfill','fill','fill-val'],['lback','back','back-val'],['lamb','amb','amb-val']]){$(id).value=LIGHT[key];$(val).textContent=LIGHT[key].toFixed(2)}$('hdri').value=.85;$('hdri-val').textContent='0.85';updateLights();applyEnvironment()};
+$('light-reset').onclick=()=>{Object.assign(LIGHT,LIGHT0);ENV.intensity=.85;$('hdri-select').value='studio_kontrast_04_2k.hdr';loadEnvironment('studio_kontrast_04_2k.hdr');for(const [id,key,val] of [['lkey','key','key-val'],['lfill','fill','fill-val'],['lback','back','back-val'],['lamb','amb','amb-val']]){$(id).value=LIGHT[key];$(val).textContent=LIGHT[key].toFixed(2)}$('hdri').value=.85;$('hdri-val').textContent='0.85';updateLights();applyEnvironment()};
 
 for(const [id,key,val] of [['vib','vibrance','vib-val'],['sat','saturation','sat-val'],['con','contrast','con-val'],['warm','warm','warm-val'],['tint','tint','tint-val'],['cool','cool','cool-val']])$(id).oninput=e=>{GRADE[key]=+e.target.value;$(val).textContent=GRADE[key].toFixed(2);applyGrading()};
 $('grade-reset').onclick=()=>{Object.assign(GRADE,GRADE0);for(const [id,key,val] of [['vib','vibrance','vib-val'],['sat','saturation','sat-val'],['con','contrast','con-val'],['warm','warm','warm-val'],['tint','tint','tint-val'],['cool','cool','cool-val']]){$(id).value=GRADE[key];$(val).textContent=GRADE[key].toFixed(2)}applyGrading()};
