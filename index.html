@@ -227,32 +227,49 @@ function fitDistanceForBox(box,aspect=camera.aspect){
 }
 function fitCameraToObject(obj,resetAngles=true){
  obj.updateWorldMatrix(true,true);
+
  const box=new THREE.Box3().setFromObject(obj);
  if(box.isEmpty())return;
+
+ // Always orbit around the ACTUAL world-space center of this model.
+ // This makes the viewer independent of the GLB/Blender origin/pivot.
+ const center=box.getCenter(new THREE.Vector3());
  const sphere=box.getBoundingSphere(new THREE.Sphere());
- modelCenter.copy(sphere.center);modelSphereRadius=Math.max(sphere.radius,.001);
- CAM.tx=sphere.center.x;CAM.ty=sphere.center.y;CAM.tz=sphere.center.z;
- // Consistent product framing:
- // desktop/tablet: ~16% breathing room;
- // portrait phones: extra room for the narrow viewport and touch UI.
- const aspect=camera.aspect;
+
+ modelCenter.copy(center);
+ modelSphereRadius=Math.max(sphere.radius,.001);
+
+ const aspect=Math.max(camera.aspect,.01);
+
+ // One framing rule for every model. Distance adapts to its bounds;
+ // orientation and padding remain consistent.
  let framing=1.30;
  if(aspect<0.75) framing=1.42;
  else if(aspect<1.0) framing=1.36;
- fitRadius=Math.max(fitDistanceForBox(box,aspect)*framing,modelSphereRadius*1.35,.01);
+
+ fitRadius=Math.max(
+  fitDistanceForBox(box,aspect)*framing,
+  modelSphereRadius*1.35,
+  .01
+ );
+
+ if(resetAngles){
+  CAM.az=THREE.MathUtils.degToRad(65);
+  CAM.el=THREE.MathUtils.degToRad(-5);
+ }
+
+ CAM.tx=center.x;
+ CAM.ty=center.y;
+ CAM.tz=center.z;
  CAM.r=fitRadius;
- if(resetAngles){CAM.az=THREE.MathUtils.degToRad(65);CAM.el=THREE.MathUtils.degToRad(-5)}
+
  camera.near=Math.max(modelSphereRadius/1000,.001);
  camera.far=Math.max(modelSphereRadius*1000,100);
  camera.updateProjectionMatrix();
- // One global camera rule for every model:
- // same orientation and centered target; only distance adapts to model bounds/aspect ratio.
- CAM.az=THREE.MathUtils.degToRad(65);
- CAM.el=THREE.MathUtils.degToRad(-5);
- CAM.tx=0;CAM.ty=0;CAM.tz=0;
- CAM.r=fitRadius;
+
  CAM_DEFAULT={...CAM};
- syncCam();markDirty();
+ syncCam();
+ markDirty();
 }
 function resetCamera(){
  if(currentObject){
