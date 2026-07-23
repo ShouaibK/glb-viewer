@@ -74,8 +74,8 @@ input[type=range]{width:100%;accent-color:var(--acc)}input[type=number]{width:10
 <button class="pbtn primary" id="cp-apply">APPLY</button><button class="pbtn" id="cp-save">SAVE AS DEFAULT</button></div>
 
 <div class="panel" id="light-panel"><div class="ptitle">Lighting</div>
-<div class="row"><div class="label"><span>Key</span><em id="key-val">0.42</em></div><input type="range" id="lkey" min="0" max="3" step=".01" value=".42"></div>
-<div class="row"><div class="label"><span>Fill</span><em id="fill-val">0.10</em></div><input type="range" id="lfill" min="0" max="3" step=".01" value=".10"></div>
+<div class="row"><div class="label"><span>Key</span><em id="key-val">1.00</em></div><input type="range" id="lkey" min="0" max="3" step=".01" value="1"></div>
+<div class="row"><div class="label"><span>Fill</span><em id="fill-val">0.20</em></div><input type="range" id="lfill" min="0" max="3" step=".01" value=".20"></div>
 <div class="row"><div class="label"><span>Back</span><em id="back-val">0.45</em></div><input type="range" id="lback" min="0" max="3" step=".01" value=".45"></div>
 <div class="row"><div class="label"><span>Ambient</span><em id="amb-val">0.06</em></div><input type="range" id="lamb" min="0" max="2" step=".01" value=".06"></div>
 <div class="sep"></div><div class="row"><div class="label"><span>HDRI Intensity</span><em id="hdri-val">0.85</em></div><input type="range" id="hdri" min="0" max="3" step=".01" value=".85"></div>
@@ -124,14 +124,18 @@ const scene=new THREE.Scene();
 const camera=new THREE.PerspectiveCamera(45,1,.01,1000);
 let envTex=null;
 const ENV={intensity:0.85};
-const LIGHT={key:.42,fill:.10,back:.45,amb:.06}, LIGHT0={...LIGHT};
+const LIGHT={key:1.00,fill:.20,back:.45,amb:.06}, LIGHT0={...LIGHT};
 const lights={
- key:new THREE.DirectionalLight(0xfff8f0,LIGHT.key),
- fill:new THREE.DirectionalLight(0xf0f8ff,LIGHT.fill),
- back:new THREE.DirectionalLight(0xffffff,LIGHT.back),
+ // Large neutral-white area lights emulate photographic softboxes.
+ key:new THREE.RectAreaLight(0xffffff,LIGHT.key,5.5,4.0),
+ fill:new THREE.RectAreaLight(0xffffff,LIGHT.fill,4.5,4.5),
+ back:new THREE.RectAreaLight(0xffffff,LIGHT.back,3.5,5.0),
  amb:new THREE.AmbientLight(0xffffff,LIGHT.amb)
 };
-lights.key.position.set(5,-2,8);lights.fill.position.set(-5,2,8);lights.back.position.set(0,5,-8);
+lights.key.position.set(4.5,5.5,5.5);
+lights.fill.position.set(-4.0,2.2,4.0);
+lights.back.position.set(-1.5,4.5,-4.5);
+lights.key.lookAt(0,0,0);lights.fill.lookAt(0,0,0);lights.back.lookAt(0,0,0);
 scene.add(lights.key,lights.fill,lights.back,lights.amb);
 
 const CAM={az:THREE.MathUtils.degToRad(65),el:THREE.MathUtils.degToRad(-5),r:3,tx:0,ty:0,tz:0};
@@ -236,7 +240,9 @@ async function loadGLBBytes(buf,name,id){
   if(gen!==loadGeneration){disposeObject(gltf.scene);return}
   progress('PREPARING MATERIALS…',70);const obj=gltf.scene;prepareObject(obj);
   removeCurrent();currentObject=obj;currentModelId=id;scene.add(obj);
-  fitCameraToObject(obj,true);showInfo(name,countTriangles(obj));applyEnvironment();updateLights();
+  fitCameraToObject(obj,true);
+  updateStudioRig(obj);
+  showInfo(name,countTriangles(obj));applyEnvironment();updateLights();
   progress('READY',100);markDirty();setTimeout(ovOff,180);
   queueThumbnail(id,buf);
  }catch(err){if(gen!==loadGeneration)return;console.error(err);ovOff();$('empty').style.display='flex';alert('Error loading model:\\n'+(err?.message||err))}
@@ -257,6 +263,25 @@ async function loadEnvironment(){
  applyEnvironment();
 }
 function applyEnvironment(){scene.environment=envTex;scene.environmentIntensity=ENV.intensity;markDirty()}
+
+function updateStudioRig(obj){
+ if(!obj)return;
+ const box=new THREE.Box3().setFromObject(obj);
+ const sphere=box.getBoundingSphere(new THREE.Sphere());
+ const c=sphere.center,r=Math.max(sphere.radius,.001);
+
+ // Oversized softboxes = broad, soft commercial product illumination.
+ lights.key.width=r*4.2;  lights.key.height=r*3.2;
+ lights.fill.width=r*3.8; lights.fill.height=r*3.5;
+ lights.back.width=r*3.2; lights.back.height=r*4.0;
+
+ // Key: high/front-left. Fill: broad/front-right. Rim: high/rear.
+ lights.key.position.set(c.x-r*2.8,c.y+r*3.2,c.z+r*3.5);
+ lights.fill.position.set(c.x+r*3.0,c.y+r*1.1,c.z+r*2.8);
+ lights.back.position.set(c.x+r*1.5,c.y+r*3.0,c.z-r*3.5);
+
+ lights.key.lookAt(c);lights.fill.lookAt(c);lights.back.lookAt(c);
+}
 function updateLights(){lights.key.intensity=LIGHT.key;lights.fill.intensity=LIGHT.fill;lights.back.intensity=LIGHT.back;lights.amb.intensity=LIGHT.amb;markDirty()}
 
 const GRADE={vibrance:.12,saturation:1.00,contrast:1.06,warm:1,tint:1,cool:1},GRADE0={...GRADE};
@@ -298,7 +323,11 @@ async function makeThumbnail(id,buf){
  const model=models.find(m=>m?.id===id);if(!model)return;
  const gltf=await parseGLB(buf);const obj=gltf.scene;prepareObject(obj);
  const ts=new THREE.Scene();ts.environment=envTex;ts.environmentIntensity=ENV.intensity;
- const amb=new THREE.AmbientLight(0xffffff,.08),key=new THREE.DirectionalLight(0xffffff,.48);key.position.set(4,5,6);ts.add(amb,key,obj);
+ const amb=new THREE.AmbientLight(0xffffff,.06);
+ const key=new THREE.RectAreaLight(0xffffff,.85,5,4);
+ const fill=new THREE.RectAreaLight(0xffffff,.16,4,4);
+ key.position.set(4,5,6);fill.position.set(-4,2,4);
+ key.lookAt(0,0,0);fill.lookAt(0,0,0);ts.add(amb,key,fill,obj);
  const box=new THREE.Box3().setFromObject(obj),center=box.getCenter(new THREE.Vector3()),size=box.getSize(new THREE.Vector3());
  const tc=new THREE.PerspectiveCamera(42,1.6,.001,10000),dist=Math.max(size.length(),.01)*1.05;
  tc.position.copy(center).add(new THREE.Vector3(dist*.7,dist*.45,dist*.8));tc.lookAt(center);tc.near=Math.max(dist/1000,.001);tc.far=dist*100;tc.updateProjectionMatrix();
