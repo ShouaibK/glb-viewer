@@ -29,7 +29,7 @@ input[type=range]{width:100%;accent-color:var(--acc)}select{width:100%;height:29
 .sep{height:1px;background:var(--bor);margin:10px 0}
 #ov{position:absolute;inset:0;z-index:30;background:color-mix(in srgb,var(--bg) 94%,transparent);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;transition:opacity .25s}.off{opacity:0;pointer-events:none}.ring{width:30px;height:30px;border:2px solid var(--bor);border-top-color:var(--acc);border-radius:50%;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}#pb{width:160px;height:3px;background:var(--bor);border-radius:4px;overflow:hidden}#pf{height:100%;width:0;background:var(--acc)}#pt{font:600 .56rem ui-monospace,monospace;letter-spacing:.12em;color:var(--mut)}
 #empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;pointer-events:none;color:var(--mut)}.eico{font-size:28px}.etxt{font:600 .58rem ui-monospace,monospace;letter-spacing:.08em}
-#bar{height:104px;flex:none;background:var(--sur);border-top:1px solid var(--bor);display:flex;align-items:center;gap:8px;padding:10px 14px;overflow-x:auto}.mc,.upb{height:72px;flex:0 0 150px;border:1px solid var(--bor);border-radius:9px;background:var(--sur);position:relative;display:flex;align-items:center;overflow:hidden}.mc{cursor:pointer}.mc.act{border-color:var(--acc);box-shadow:0 0 0 1px color-mix(in srgb,var(--acc) 20%,transparent)}.mc.emp{opacity:.5}.cpv{width:58px;height:100%;display:grid;place-items:center;overflow:hidden;background:color-mix(in srgb,var(--bg) 70%,transparent);font-size:20px}.cpv img{width:100%;height:100%;object-fit:cover}.cin{min-width:0;padding:0 9px}.cnm{font-size:.6rem;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ctp{font:500 .48rem ui-monospace,monospace;color:var(--mut);margin-top:3px}.cbtn{position:absolute;right:4px;top:4px;width:18px;height:18px;border:0;border-radius:4px;background:transparent;color:var(--mut);cursor:pointer}.cbtn:hover{background:#fee;color:#c22}.upb{flex-basis:70px;justify-content:center;flex-direction:column;border-style:dashed;color:var(--mut);cursor:pointer;font:600 .5rem ui-monospace,monospace}.upb span{font-size:18px}#fi{display:none}
+#bar{height:104px;flex:none;background:var(--sur);border-top:1px solid var(--bor);display:flex;align-items:center;gap:8px;padding:10px 14px;overflow-x:auto}.mc,.upb{height:72px;flex:0 0 150px;border:1px solid var(--bor);border-radius:9px;background:var(--sur);position:relative;display:flex;align-items:center;overflow:hidden}.mc{cursor:pointer}.mc.act{border-color:var(--acc);box-shadow:0 0 0 1px color-mix(in srgb,var(--acc) 20%,transparent)}.mc.emp{opacity:.5}.cpv{width:64px;height:100%;display:grid;place-items:center;overflow:hidden;background:radial-gradient(circle at 50% 42%,var(--vi),color-mix(in srgb,var(--bg) 82%,var(--vo)));font-size:20px}.cpv img{width:100%;height:100%;object-fit:contain;padding:3px}.cin{min-width:0;padding:0 9px}.cnm{font-size:.6rem;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ctp{font:500 .48rem ui-monospace,monospace;color:var(--mut);margin-top:3px}.cbtn{position:absolute;right:4px;top:4px;width:18px;height:18px;border:0;border-radius:4px;background:transparent;color:var(--mut);cursor:pointer}.cbtn:hover{background:#fee;color:#c22}.upb{flex-basis:70px;justify-content:center;flex-direction:column;border-style:dashed;color:var(--mut);cursor:pointer;font:600 .5rem ui-monospace,monospace}.upb span{font-size:18px}#fi{display:none}
 #snap-modal{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center}#snap-modal.show{display:flex}#snap-box{max-width:90vw;max-height:90vh;background:var(--sur);border:1px solid var(--bor);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px}#snap-preview{max-width:75vw;max-height:62vh;object-fit:contain;background:repeating-conic-gradient(#ddd 0 25%,#fff 0 50%) 0/20px 20px}.snap-actions{display:flex;gap:8px}.snap-actions input{flex:1;min-width:0;height:32px;border:1px solid var(--bor);border-radius:6px;padding:0 8px;background:var(--bg);color:var(--txt)}.snap-actions button{height:32px;border:1px solid var(--bor);border-radius:6px;background:var(--sur);color:var(--txt);cursor:pointer}.snap-actions .save{background:var(--acc);color:#fff;border-color:var(--acc);padding:0 12px}.snap-info{font:500 .58rem ui-monospace,monospace;color:var(--mut)}
 @media(max-width:600px){header{height:48px;padding:0 10px}#hname{display:none}.chip:first-child{display:none}#bar{height:78px;padding:8px;gap:5px}.mc{flex:1 0 72px;height:60px}.cpv{width:38px}.ctp{display:none}.cnm{font-size:.5rem}.upb{height:60px;flex-basis:42px}.panel{left:8px;right:8px;width:auto;top:52px}#toolbar{right:8px;top:8px}.tb{width:34px;height:34px}#hint{display:none}#minfo{left:12px;top:12px}.mtit{font-size:1.05rem}}
 
@@ -397,13 +397,67 @@ let thumbQueue=Promise.resolve();
 function queueThumbnail(id,buf){thumbQueue=thumbQueue.then(()=>makeThumbnail(id,buf)).catch(console.warn)}
 async function makeThumbnail(id,buf){
  const model=models.find(m=>m?.id===id);if(!model)return;
- const gltf=await parseGLB(buf);const obj=gltf.scene;prepareObject(obj);
- const ts=new THREE.Scene();ts.environment=envTex;ts.environmentIntensity=ENV.intensity;
- const amb=new THREE.AmbientLight(0xffffff,.08),key=new THREE.DirectionalLight(0xffffff,.48);key.position.set(4,5,6);ts.add(amb,key,obj);
- const box=new THREE.Box3().setFromObject(obj),center=box.getCenter(new THREE.Vector3()),size=box.getSize(new THREE.Vector3());
- const tc=new THREE.PerspectiveCamera(42,1.6,.001,10000),dist=Math.max(size.length(),.01)*1.05;
- tc.position.copy(center).add(new THREE.Vector3(dist*.7,dist*.45,dist*.8));tc.lookAt(center);tc.near=Math.max(dist/1000,.001);tc.far=dist*100;tc.updateProjectionMatrix();
- thumbRenderer.render(ts,tc);model.thumb=thumbCanvas.toDataURL('image/png');disposeObject(obj);renderCards();
+ const gltf=await parseGLB(buf),obj=gltf.scene;prepareObject(obj);
+ obj.updateWorldMatrix(true,true);
+
+ const ts=new THREE.Scene();
+ ts.environment=envTex;
+ ts.environmentIntensity=Math.min(ENV.intensity,.72);
+
+ // Neutral studio-style thumbnail lighting.
+ const amb=new THREE.AmbientLight(0xffffff,.06);
+ const key=new THREE.DirectionalLight(0xfff8f0,.82);
+ const fill=new THREE.DirectionalLight(0xf0f8ff,.16);
+ const back=new THREE.DirectionalLight(0xffffff,.30);
+ ts.add(amb,key,fill,back,key.target,fill.target,back.target,obj);
+
+ const box=new THREE.Box3().setFromObject(obj);
+ if(box.isEmpty()){disposeObject(obj);return}
+ const center=box.getCenter(new THREE.Vector3());
+ const sphere=box.getBoundingSphere(new THREE.Sphere());
+ const radius=Math.max(sphere.radius,.001);
+
+ // Match the main viewer's default product angle.
+ const az=THREE.MathUtils.degToRad(65),el=THREE.MathUtils.degToRad(-5);
+ const ce=Math.cos(el),se=Math.sin(el),ca=Math.cos(az),sa=Math.sin(az);
+
+ const tc=new THREE.PerspectiveCamera(38,320/200,.001,10000);
+
+ // Fit the complete model into the thumbnail with a small, consistent margin.
+ const size=box.getSize(new THREE.Vector3());
+ const vfov=THREE.MathUtils.degToRad(tc.fov);
+ const hfov=2*Math.atan(Math.tan(vfov/2)*tc.aspect);
+ const vertical=(size.y*.5)/Math.tan(vfov*.5);
+ const horizontal=(size.x*.5)/Math.tan(hfov*.5);
+ const dist=Math.max(vertical,horizontal)+(size.z*.5);
+ const thumbDist=Math.max(dist*1.22,radius*1.45);
+
+ tc.position.set(
+  center.x+thumbDist*ca*ce,
+  center.y+thumbDist*se,
+  center.z+thumbDist*sa*ce
+ );
+ tc.lookAt(center);
+ tc.near=Math.max(radius/1000,.001);
+ tc.far=Math.max(radius*1000,100);
+ tc.updateProjectionMatrix();
+
+ // Camera-relative three-point light rig.
+ const viewDir=tc.position.clone().sub(center).normalize();
+ const right=new THREE.Vector3().crossVectors(viewDir,new THREE.Vector3(0,1,0));
+ if(right.lengthSq()<1e-6)right.set(1,0,0);else right.normalize();
+ const up=new THREE.Vector3().crossVectors(right,viewDir).normalize();
+
+ key.position.copy(center).addScaledVector(viewDir,thumbDist*.85).addScaledVector(right,-thumbDist*.48).addScaledVector(up,thumbDist*.55);
+ fill.position.copy(center).addScaledVector(viewDir,thumbDist*.72).addScaledVector(right,thumbDist*.58).addScaledVector(up,thumbDist*.18);
+ back.position.copy(center).addScaledVector(viewDir,-thumbDist*.90).addScaledVector(right,thumbDist*.20).addScaledVector(up,thumbDist*.62);
+ key.target.position.copy(center);fill.target.position.copy(center);back.target.position.copy(center);
+ key.target.updateMatrixWorld();fill.target.updateMatrixWorld();back.target.updateMatrixWorld();
+
+ thumbRenderer.render(ts,tc);
+ model.thumb=thumbCanvas.toDataURL('image/png');
+ disposeObject(obj);
+ renderCards();
 }
 
 $('fi').addEventListener('change',async e=>{
