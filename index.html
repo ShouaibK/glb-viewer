@@ -136,6 +136,7 @@ scene.add(lights.key,lights.fill,lights.back,lights.amb,lights.key.target,lights
 
 const CAM={az:THREE.MathUtils.degToRad(65),el:THREE.MathUtils.degToRad(-5),r:3,tx:0,ty:0,tz:0};
 let CAM_DEFAULT={...CAM}, fitRadius=1, modelCenter=new THREE.Vector3(), modelSphereRadius=1;
+const MODEL_CAMERA_DEFAULTS=new Map();
 let currentObject=null,currentModelId=null,loadGeneration=0,raf=0;
 
 function updateCamera(){
@@ -143,6 +144,7 @@ function updateCamera(){
  camera.position.set(CAM.tx+CAM.r*ca*ce,CAM.ty+CAM.r*se,CAM.tz+CAM.r*sa*ce);
  camera.lookAt(CAM.tx,CAM.ty,CAM.tz);
  updateCameraLights();
+ syncCam();
 }
 
 const _lightTarget=new THREE.Vector3();
@@ -236,11 +238,20 @@ function fitCameraToObject(obj,resetAngles=true){
  camera.near=Math.max(modelSphereRadius/1000,.001);
  camera.far=Math.max(modelSphereRadius*1000,100);
  camera.updateProjectionMatrix();
- CAM_DEFAULT={...CAM};markDirty();
+ const saved=currentModelId?MODEL_CAMERA_DEFAULTS.get(currentModelId):null;
+ if(saved){
+  Object.assign(CAM,saved);
+  CAM_DEFAULT={...saved};
+ }else{
+  CAM_DEFAULT={...CAM};
+  if(currentModelId)MODEL_CAMERA_DEFAULTS.set(currentModelId,{...CAM});
+ }
+ syncCam();markDirty();
 }
 function resetCamera(){
- if(currentObject) fitCameraToObject(currentObject,true);
- else {Object.assign(CAM,CAM_DEFAULT);markDirty()}
+ const saved=currentModelId?MODEL_CAMERA_DEFAULTS.get(currentModelId):null;
+ Object.assign(CAM,saved||CAM_DEFAULT);
+ syncCam();markDirty();
 }
 
 function disposeMaterial(m){
@@ -447,9 +458,28 @@ function closePanels(){['cam','light','grade'].forEach(x=>{$(x+'-panel').classLi
 function panelToggle(name){const p=$(name+'-panel'),was=p.classList.contains('open');closePanels();if(!was){p.classList.add('open');$(name+'-toggle').classList.add('open');if(name==='cam')syncCam()}}
 ['cam','light','grade'].forEach(x=>$(x+'-toggle').onclick=()=>panelToggle(x));
 $('reset-btn').onclick=resetCamera;
-function syncCam(){$('cp-az').value=THREE.MathUtils.radToDeg(CAM.az).toFixed(1);$('cp-el').value=THREE.MathUtils.radToDeg(CAM.el).toFixed(1);$('cp-r').value=CAM.r.toFixed(3);$('cp-tx').value=CAM.tx.toFixed(3);$('cp-ty').value=CAM.ty.toFixed(3)}
-function applyCam(){CAM.az=THREE.MathUtils.degToRad(+$('cp-az').value||0);CAM.el=THREE.MathUtils.clamp(THREE.MathUtils.degToRad(+$('cp-el').value||0),-1.5,1.5);CAM.r=Math.max(.001,+$('cp-r').value||fitRadius);CAM.tx=+$('cp-tx').value||0;CAM.ty=+$('cp-ty').value||0;markDirty()}
-$('cp-apply').onclick=applyCam;$('cp-save').onclick=()=>{applyCam();CAM_DEFAULT={...CAM};$('cp-save').textContent='SAVED ✓';setTimeout(()=>$('cp-save').textContent='SAVE AS DEFAULT',1000)};
+function syncCam(){
+ const fields=[$('cp-az'),$('cp-el'),$('cp-r'),$('cp-tx'),$('cp-ty')],active=document.activeElement;
+ const vals=[
+  THREE.MathUtils.radToDeg(CAM.az).toFixed(1),
+  THREE.MathUtils.radToDeg(CAM.el).toFixed(1),
+  CAM.r.toFixed(3),CAM.tx.toFixed(3),CAM.ty.toFixed(3)
+ ];
+ fields.forEach((f,i)=>{if(f&&f!==active)f.value=vals[i]});
+}
+function applyCam(){CAM.az=THREE.MathUtils.degToRad(+$('cp-az').value||0);CAM.el=THREE.MathUtils.clamp(THREE.MathUtils.degToRad(+$('cp-el').value||0),-1.5,1.5);CAM.r=Math.max(.001,+$('cp-r').value||fitRadius);CAM.tx=+$('cp-tx').value||0;CAM.ty=+$('cp-ty').value||0;syncCam();markDirty()}
+$('cp-apply').onclick=applyCam;
+$('cp-save').onclick=()=>{
+ // Save the camera state that is already live in CAM.
+ // Do NOT call applyCam() here: syncCam() formats displayed values
+ // (for example distance to 3 decimals), so re-parsing the fields can
+ // slightly move/reset the camera when Save is clicked.
+ CAM_DEFAULT={...CAM};
+ if(currentModelId)MODEL_CAMERA_DEFAULTS.set(currentModelId,{...CAM});
+ syncCam();
+ $('cp-save').textContent='SAVED ✓';
+ setTimeout(()=>$('cp-save').textContent='SAVE AS DEFAULT',1000);
+};
 
 for(const [id,key,val] of [['lkey','key','key-val'],['lfill','fill','fill-val'],['lback','back','back-val'],['lamb','amb','amb-val']])$(id).oninput=e=>{LIGHT[key]=+e.target.value;$(val).textContent=LIGHT[key].toFixed(2);updateLights()};
 $('hdri').oninput=e=>{ENV.intensity=+e.target.value;$('hdri-val').textContent=ENV.intensity.toFixed(2);applyEnvironment()};
