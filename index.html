@@ -392,7 +392,7 @@ function closeModel(id){
 
 const thumbCanvas=document.createElement('canvas');thumbCanvas.width=320;thumbCanvas.height=200;
 const thumbRenderer=new THREE.WebGLRenderer({canvas:thumbCanvas,antialias:true,alpha:true,powerPreference:'low-power',preserveDrawingBuffer:true});
-thumbRenderer.setPixelRatio(1);thumbRenderer.setSize(320,200,false);thumbRenderer.outputColorSpace=THREE.SRGBColorSpace;thumbRenderer.toneMapping=THREE.ACESFilmicToneMapping;thumbRenderer.toneMappingExposure=.82;
+thumbRenderer.setPixelRatio(1);thumbRenderer.setSize(320,200,false);thumbRenderer.outputColorSpace=THREE.SRGBColorSpace;thumbRenderer.toneMapping=THREE.ACESFilmicToneMapping;thumbRenderer.toneMappingExposure=1.45;
 let thumbQueue=Promise.resolve();
 function queueThumbnail(id,buf){thumbQueue=thumbQueue.then(()=>makeThumbnail(id,buf)).catch(console.warn)}
 async function makeThumbnail(id,buf){
@@ -401,15 +401,18 @@ async function makeThumbnail(id,buf){
  obj.updateWorldMatrix(true,true);
 
  const ts=new THREE.Scene();
- ts.environment=envTex;
- ts.environmentIntensity=Math.min(ENV.intensity,.72);
 
- // Neutral studio-style thumbnail lighting.
- const amb=new THREE.AmbientLight(0xffffff,.06);
- const key=new THREE.DirectionalLight(0xfff8f0,.82);
- const fill=new THREE.DirectionalLight(0xf0f8ff,.16);
- const back=new THREE.DirectionalLight(0xffffff,.30);
- ts.add(amb,key,fill,back,key.target,fill.target,back.target,obj);
+ // High-visibility neutral thumbnail lighting.
+ // Independent from the main viewer's lighting controls.
+ ts.environment=envTex;
+ ts.environmentIntensity=1.0;
+
+ const hemi=new THREE.HemisphereLight(0xffffff,0xb8bec8,1.25);
+ const amb=new THREE.AmbientLight(0xffffff,.40);
+ const key=new THREE.DirectionalLight(0xffffff,1.80);
+ const fill=new THREE.DirectionalLight(0xffffff,1.10);
+ const back=new THREE.DirectionalLight(0xffffff,.65);
+ ts.add(hemi,amb,key,fill,back,key.target,fill.target,back.target,obj);
 
  const box=new THREE.Box3().setFromObject(obj);
  if(box.isEmpty()){disposeObject(obj);return}
