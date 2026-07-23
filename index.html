@@ -71,7 +71,6 @@ input[type=range]{width:100%;accent-color:var(--acc)}input[type=number]{width:10
 <div class="row"><div class="label"><span>Elevation °</span></div><input id="cp-el" type="number" step=".1"></div>
 <div class="row"><div class="label"><span>Zoom Distance</span></div><input id="cp-r" type="number" step=".01"></div>
 <div class="twocol"><div class="row"><div class="label"><span>Pan X</span></div><input id="cp-tx" type="number" step=".01"></div><div class="row"><div class="label"><span>Pan Y</span></div><input id="cp-ty" type="number" step=".01"></div></div>
-<button class="pbtn primary" id="cp-apply">APPLY</button><button class="pbtn" id="cp-save">SAVE AS DEFAULT</button></div>
 
 <div class="panel" id="light-panel"><div class="ptitle">Lighting</div>
 <div class="row"><div class="label"><span>Key</span><em id="key-val">1.00</em></div><input type="range" id="lkey" min="0" max="3" step=".01" value="1"></div>
@@ -136,7 +135,6 @@ scene.add(lights.key,lights.fill,lights.back,lights.amb,lights.key.target,lights
 
 const CAM={az:THREE.MathUtils.degToRad(65),el:THREE.MathUtils.degToRad(-5),r:3,tx:0,ty:0,tz:0};
 let CAM_DEFAULT={...CAM}, fitRadius=1, modelCenter=new THREE.Vector3(), modelSphereRadius=1;
-const MODEL_CAMERA_DEFAULTS=new Map();
 let currentObject=null,currentModelId=null,loadGeneration=0,raf=0;
 
 function updateCamera(){
@@ -238,20 +236,23 @@ function fitCameraToObject(obj,resetAngles=true){
  camera.near=Math.max(modelSphereRadius/1000,.001);
  camera.far=Math.max(modelSphereRadius*1000,100);
  camera.updateProjectionMatrix();
- const saved=currentModelId?MODEL_CAMERA_DEFAULTS.get(currentModelId):null;
- if(saved){
-  Object.assign(CAM,saved);
-  CAM_DEFAULT={...saved};
- }else{
-  CAM_DEFAULT={...CAM};
-  if(currentModelId)MODEL_CAMERA_DEFAULTS.set(currentModelId,{...CAM});
- }
+ // One global camera rule for every model:
+ // same orientation and centered target; only distance adapts to model bounds/aspect ratio.
+ CAM.az=THREE.MathUtils.degToRad(65);
+ CAM.el=THREE.MathUtils.degToRad(-5);
+ CAM.tx=0;CAM.ty=0;CAM.tz=0;
+ CAM.r=fitRadius;
+ CAM_DEFAULT={...CAM};
  syncCam();markDirty();
 }
 function resetCamera(){
- const saved=currentModelId?MODEL_CAMERA_DEFAULTS.get(currentModelId):null;
- Object.assign(CAM,saved||CAM_DEFAULT);
- syncCam();markDirty();
+ if(currentObject){
+  // Recalculate from the same global rule so resize/orientation changes are handled correctly.
+  fitCameraToObject(currentObject,true);
+ }else{
+  Object.assign(CAM,CAM_DEFAULT);
+  syncCam();markDirty();
+ }
 }
 
 function disposeMaterial(m){
@@ -469,17 +470,6 @@ function syncCam(){
 }
 function applyCam(){CAM.az=THREE.MathUtils.degToRad(+$('cp-az').value||0);CAM.el=THREE.MathUtils.clamp(THREE.MathUtils.degToRad(+$('cp-el').value||0),-1.5,1.5);CAM.r=Math.max(.001,+$('cp-r').value||fitRadius);CAM.tx=+$('cp-tx').value||0;CAM.ty=+$('cp-ty').value||0;syncCam();markDirty()}
 $('cp-apply').onclick=applyCam;
-$('cp-save').onclick=()=>{
- // Save the camera state that is already live in CAM.
- // Do NOT call applyCam() here: syncCam() formats displayed values
- // (for example distance to 3 decimals), so re-parsing the fields can
- // slightly move/reset the camera when Save is clicked.
- CAM_DEFAULT={...CAM};
- if(currentModelId)MODEL_CAMERA_DEFAULTS.set(currentModelId,{...CAM});
- syncCam();
- $('cp-save').textContent='SAVED ✓';
- setTimeout(()=>$('cp-save').textContent='SAVE AS DEFAULT',1000);
-};
 
 for(const [id,key,val] of [['lkey','key','key-val'],['lfill','fill','fill-val'],['lback','back','back-val'],['lamb','amb','amb-val']])$(id).oninput=e=>{LIGHT[key]=+e.target.value;$(val).textContent=LIGHT[key].toFixed(2);updateLights()};
 $('hdri').oninput=e=>{ENV.intensity=+e.target.value;$('hdri-val').textContent=ENV.intensity.toFixed(2);applyEnvironment()};
