@@ -227,9 +227,9 @@ function fitCameraToObject(obj,resetAngles=true){
  // desktop/tablet: ~16% breathing room;
  // portrait phones: extra room for the narrow viewport and touch UI.
  const aspect=camera.aspect;
- let framing=1.16;
- if(aspect<0.75) framing=1.28;
- else if(aspect<1.0) framing=1.22;
+ let framing=1.30;
+ if(aspect<0.75) framing=1.42;
+ else if(aspect<1.0) framing=1.36;
  fitRadius=Math.max(fitDistanceForBox(box,aspect)*framing,modelSphereRadius*1.35,.01);
  CAM.r=fitRadius;
  if(resetAngles){CAM.az=THREE.MathUtils.degToRad(65);CAM.el=THREE.MathUtils.degToRad(-5)}
