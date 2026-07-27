@@ -113,19 +113,26 @@ input[type=range]{width:100%;accent-color:var(--acc)}select{width:100%;height:29
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 
 const $=id=>document.getElementById(id), view=$('viewer'), canvas=$('c');
 const ovOn=(t='LOADING…',p=10)=>{$('pt').textContent=t;$('pf').style.width=p+'%';$('ov').classList.remove('off')};
 const ovOff=()=>$('ov').classList.add('off');
 const progress=(t,p)=>{$('pt').textContent=t;$('pf').style.width=p+'%'};
 
-const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:'high-performance',preserveDrawingBuffer:true});
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:'high-performance'});
 renderer.setClearColor(0x000000,0);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,matchMedia('(pointer:coarse)').matches?1.5:2));
 renderer.outputColorSpace=THREE.SRGBColorSpace;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure=0.82;
 renderer.shadowMap.enabled=false;
+
+const dracoLoader=new DRACOLoader();
+dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/libs/draco/');
+const ktx2Loader=new KTX2Loader().setTranscoderPath('https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/libs/basis/').detectSupport(renderer);
 
 const scene=new THREE.Scene();
 const camera=new THREE.PerspectiveCamera(45,1,.01,1000);
@@ -294,9 +301,10 @@ function removeCurrent(){
  if(!currentObject)return;
  scene.remove(currentObject);disposeObject(currentObject);currentObject=null;currentModelId=null;
 }
+const isCoarsePointer=matchMedia('(pointer:coarse)').matches;
 function prepareMaterial(m){
  if(!m)return;
- const maxAniso=Math.min(renderer.capabilities.getMaxAnisotropy(),8);
+ const maxAniso=Math.min(renderer.capabilities.getMaxAnisotropy(),isCoarsePointer?4:8);
  for(const key of ['map','emissiveMap','normalMap','roughnessMap','metalnessMap','aoMap','alphaMap']){
   const t=m[key];if(!t)continue;t.anisotropy=maxAniso;t.needsUpdate=true;
  }
@@ -317,7 +325,15 @@ function countTriangles(obj){
 function showInfo(name,tris){
  $('minfo').style.display='block';$('mt').textContent=name;$('ms').textContent=tris.toLocaleString()+' triangles';$('hname').textContent=name.toUpperCase();$('tc').textContent=tris.toLocaleString()+' TRI';
 }
-function parseGLB(buf){return new Promise((resolve,reject)=>new GLTFLoader().parse(buf.slice(0),location.href,resolve,reject))}
+function parseGLB(buf){
+ return new Promise((resolve,reject)=>{
+  const loader=new GLTFLoader();
+  loader.setDRACOLoader(dracoLoader);
+  loader.setKTX2Loader(ktx2Loader);
+  loader.setMeshoptDecoder(MeshoptDecoder);
+  loader.parse(buf.slice(0),location.href,resolve,reject);
+ });
+}
 
 async function loadGLBBytes(buf,name,id){
  const gen=++loadGeneration;ovOn('PARSING…',15);$('empty').style.display='none';
@@ -390,9 +406,9 @@ function closeModel(id){
  renderCards();
 }
 
-const thumbCanvas=document.createElement('canvas');thumbCanvas.width=320;thumbCanvas.height=200;
+const thumbCanvas=document.createElement('canvas');thumbCanvas.width=160;thumbCanvas.height=100;
 const thumbRenderer=new THREE.WebGLRenderer({canvas:thumbCanvas,antialias:true,alpha:true,powerPreference:'low-power',preserveDrawingBuffer:true});
-thumbRenderer.setPixelRatio(1);thumbRenderer.setSize(320,200,false);thumbRenderer.outputColorSpace=THREE.SRGBColorSpace;thumbRenderer.toneMapping=THREE.ACESFilmicToneMapping;thumbRenderer.toneMappingExposure=1.45;
+thumbRenderer.setPixelRatio(1);thumbRenderer.setSize(160,100,false);thumbRenderer.outputColorSpace=THREE.SRGBColorSpace;thumbRenderer.toneMapping=THREE.ACESFilmicToneMapping;thumbRenderer.toneMappingExposure=1.45;
 let thumbQueue=Promise.resolve();
 function queueThumbnail(id,buf){thumbQueue=thumbQueue.then(()=>makeThumbnail(id,buf)).catch(console.warn)}
 async function makeThumbnail(id,buf){
@@ -424,7 +440,7 @@ async function makeThumbnail(id,buf){
  const az=THREE.MathUtils.degToRad(65),el=THREE.MathUtils.degToRad(-5);
  const ce=Math.cos(el),se=Math.sin(el),ca=Math.cos(az),sa=Math.sin(az);
 
- const tc=new THREE.PerspectiveCamera(38,320/200,.001,10000);
+const tc=new THREE.PerspectiveCamera(38,thumbCanvas.width/thumbCanvas.height,.001,10000);
 
  // Fit the complete model into the thumbnail with a small, consistent margin.
  const size=box.getSize(new THREE.Vector3());
@@ -473,13 +489,25 @@ $('fi').addEventListener('change',async e=>{
  }e.target.value='';
 });
 
+async function loadAutoSlot(i){
+ const fn=AUTOLOAD[i];
+ try{
+  const r=await fetch(fn);if(!r.ok)throw Error(r.status);
+  const buf=await r.arrayBuffer();
+  const m={id:'auto_'+i,name:fn.replace(/\.glb$/i,''),arrayBuffer:buf,thumb:null};
+  models[i]=m;renderCards();
+  if(activeId===null){activeId=m.id;renderCards();await loadGLBBytes(buf,m.name,m.id)}
+  else queueThumbnail(m.id,buf);
+ }catch(e){console.warn('Autoload failed:',fn,e)}
+}
+function idle(ms){return new Promise(r=>('requestIdleCallback' in window)?requestIdleCallback(r,{timeout:ms}):setTimeout(r,ms))}
 async function autoLoad(){
  if(location.protocol==='file:'){document.querySelector('.etxt').textContent='UPLOAD YOUR .GLB FILES';return}
- await Promise.all(AUTOLOAD.map(async(fn,i)=>{
-  try{const r=await fetch(fn);if(!r.ok)throw Error(r.status);const buf=await r.arrayBuffer();const m={id:'auto_'+i,name:fn.replace(/\.glb$/i,''),arrayBuffer:buf,thumb:null};models[i]=m;renderCards();
-   if(activeId===null){activeId=m.id;renderCards();await loadGLBBytes(buf,m.name,m.id)}else queueThumbnail(m.id,buf)
-  }catch(e){console.warn('Autoload failed:',fn,e)}
- }));
+ await loadAutoSlot(0);
+ for(let i=1;i<AUTOLOAD.length;i++){
+  await idle(600);
+  loadAutoSlot(i);
+ }
  if(!models.some(Boolean))$('empty').style.display='flex';
 }
 
