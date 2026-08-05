@@ -384,8 +384,8 @@ function applyGrading(){
  markDirty();
 }
 
-const AUTOLOAD=['GLAMIX-White.glb','GLAMIX-Voilet.glb','GLAMIX-Green.glb','GLAMIX-Fuschia.glb','wiggles-packaging-mockup-v1.glb'];
-const SLOT_NAMES=['White','Voilet','Green','Fuschia','wigges'];
+const AUTOLOAD=['GLAMIX-White.glb','GLAMIX-Voilet.glb','GLAMIX-Green.glb','GLAMIX-Fuschia.glb','wiggles-packaging-mockup-v1.glb','wiggles_wipes_72.glb'];
+const SLOT_NAMES=['White','Voilet','Green','Fuschia','wigges','Wet Wipes'];
 let models=Array(AUTOLOAD.length).fill(null),activeId=null;
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function firstFree(){const i=models.findIndex(x=>!x);if(i>=0)return i;models.push(null);return models.length-1}
