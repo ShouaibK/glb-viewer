@@ -384,8 +384,8 @@ function applyGrading(){
  markDirty();
 }
 
-const AUTOLOAD=['wiggles_mini.glb','wiggles_midi.glb','wiggles_maxi.glb','wiggles_junior.glb','wiggles_elarge.glb',];
-const SLOT_NAMES=['Mini_64','Midi_52','Maxi_46','Junior_40','Extra Large_35',];
+const AUTOLOAD=['wiggles_mini.glb','wiggles_midi.glb','wiggles_maxi.glb','wiggles_junior.glb','wiggles_elarge.glb','diapi-3dmockup-v1.glb'];
+const SLOT_NAMES=['Mini_64','Midi_52','Maxi_46','Junior_40','Extra Large_35','Diapia Baby Wet Wipes'];
 let models=Array(AUTOLOAD.length).fill(null),activeId=null;
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function firstFree(){const i=models.findIndex(x=>!x);if(i>=0)return i;models.push(null);return models.length-1}
