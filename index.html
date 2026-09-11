@@ -384,8 +384,8 @@ function applyGrading(){
  markDirty();
 }
 
-const AUTOLOAD=['ezyFry-mockup-v5.glb'];
-const SLOT_NAMES=['EzyFry-Mockup-v5'];
+const AUTOLOAD=['wiggles_mini.glb','ezyFry-mockup-v5.glb'];
+const SLOT_NAMES=[''Wiggles Mini Size2 64Pcs','EzyFry-Mockup-v5'];
 let models=Array(AUTOLOAD.length).fill(null),activeId=null;
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function firstFree(){const i=models.findIndex(x=>!x);if(i>=0)return i;models.push(null);return models.length-1}
